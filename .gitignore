@@ -53,3 +53,8 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Zig
+.venv
+.zig-cache
+.zig-out
