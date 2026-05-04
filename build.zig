@@ -7,11 +7,16 @@ const std = @import("std");
 // build runner to parallelize the build automatically (and the cache system to
 // know when a step doesn't need to be re-run).
 pub fn build(b: *std.Build) void {
-    // Standard target options allow the person running `zig build` to choose
-    // what target to build for. Here we do not override the defaults, which
-    // means any target is allowed, and the default is native. Other options
-    // for restricting supported target set are available.
-    const target = b.standardTargetOptions(.{});
+
+    //const target = b.standardTargetOptions(.{});
+    const target = b.resolveTargetQuery(.{
+        .cpu_arch = .thumb,
+        .os_tag = .freestanding,
+        .abi = .eabihf,
+        .cpu_model = .{
+            .explicit = &std.Target.arm.cpu.cortex_m4,
+        },
+    });
     // Standard optimization options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
     // set a preferred release mode, allowing the user to decide how to optimize.
@@ -41,6 +46,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
     });
 
+    const board = b.dependency("frdmmcxe247", .{});
+
     // Here we define an executable. An executable needs to have a root module
     // which needs to expose a `main` function. While we could add a main function
     // to the module defined above, it's sometimes preferable to split business
@@ -58,7 +65,7 @@ pub fn build(b: *std.Build) void {
     // If neither case applies to you, feel free to delete the declaration you
     // don't need and to put everything under a single module.
     const exe = b.addExecutable(.{
-        .name = "miso2",
+        .name = "miso2.elf",
         .root_module = b.createModule(.{
             // b.createModule defines a new module just like b.addModule but,
             // unlike b.addModule, it does not expose the module to consumers of
@@ -83,11 +90,24 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    exe.root_module.addObjectFile(b.path("external/picolibc/libc.a"));
+
+    //exe.root_module.addAssemblyFile(b.path("board/frdmmcxe247/startup/startup_MCXE247.S"));
+    exe.root_module.addObjectFile(board.artifact("board").getEmittedBin());
+
+    exe.setLinkerScript(b.path("board/frdmmcxe247/linker/MCXE247_flash.ld"));
+
+    const hex = b.addObjCopy(exe.getEmittedBin(), .{
+        .format = .hex,
+    });
+
     // This declares intent for the executable to be installed into the
     // install prefix when running `zig build` (i.e. when executing the default
     // step). By default the install prefix is `zig-out/` but can be overridden
     // by passing `--prefix` or `-p`.
     b.installArtifact(exe);
+
+    b.getInstallStep().dependOn(&b.addInstallBinFile(hex.getOutput(), "miso2.hex").step);
 
     // This creates a top level step. Top level steps have a name and can be
     // invoked by name when running `zig build` (e.g. `zig build run`).
