@@ -13,3 +13,6 @@
 [submodule "external/mcux-devices-mcx/mcux-devices-mcx"]
 	path = external/mcux-devices-mcx/mcux-devices-mcx
 	url = https://github.com/FranciscoLlobet/mcux-devices-mcx.git
+[submodule "external/mcuxsdk-core/mcuxsdk-core"]
+	path = external/mcuxsdk-core/mcuxsdk-core
+	url = https://github.com/FranciscoLlobet/mcuxsdk-core.git
