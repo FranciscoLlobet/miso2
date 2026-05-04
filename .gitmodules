@@ -1,0 +1,15 @@
+[submodule "external/mcuxsdk-core/cmsis_6/CMSIS_6"]
+	path = external/cmsis_6/CMSIS_6
+	url = https://github.com/FranciscoLlobet/CMSIS_6.git
+[submodule "external/cmsis-rtx/CMSIS-RTX"]
+	path = external/cmsis-rtx/CMSIS-RTX
+	url = https://github.com/FranciscoLlobet/CMSIS-RTX.git
+[submodule "external/picohttpparser/picohttpparser"]
+	path = external/picohttpparser/picohttpparser
+	url = https://github.com/FranciscoLlobet/picohttpparser.git
+[submodule "external/lwip/lwip"]
+	path = external/lwip/lwip
+	url = https://github.com/FranciscoLlobet/lwip.git
+[submodule "external/mcux-devices-mcx/mcux-devices-mcx"]
+	path = external/mcux-devices-mcx/mcux-devices-mcx
+	url = https://github.com/FranciscoLlobet/mcux-devices-mcx.git

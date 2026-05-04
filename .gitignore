@@ -58,3 +58,4 @@ dkms.conf
 .venv
 .zig-cache
 .zig-out
+zig-out
