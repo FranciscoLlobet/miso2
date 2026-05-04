@@ -4,9 +4,6 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // Option to select target device (default: MCXE247)
-    const device = b.option([]const u8, "device", "Target MCX device (e.g., MCXE247, MCXA156)") orelse "MCXE247";
-
     // Create the mcuxsdk-core module
     const lib_mod = b.createModule(.{
         .root_source_file = b.path("src/root.zig"),
@@ -20,7 +17,6 @@ pub fn build(b: *std.Build) void {
         .root_module = lib_mod,
     });
 
-    const mcux_devices_mcx = b.dependency("mcux_devices_mcx", .{});
     // =========================================================================
     // ARM Cortex-M Core Files (for MCXE247 - Cortex M4F)
     // =========================================================================
@@ -31,6 +27,12 @@ pub fn build(b: *std.Build) void {
     // =========================================================================
     // Common Driver Files (required for all MCX devices)
     // =========================================================================
+
+    // Get cmsis_6 for core headers
+    const cmsis_6 = b.dependency("cmsis_6", .{
+        .target = target,
+        .optimize = optimize,
+    });
 
     lib.root_module.addCSourceFiles(.{
         .files = &.{
@@ -48,6 +50,10 @@ pub fn build(b: *std.Build) void {
 
     lib.root_module.addIncludePath(b.path("mcuxsdk-core/drivers/common"));
     lib.root_module.addIncludePath(b.path("../picolibc/include"));
+    lib.root_module.addIncludePath(b.path("../mcux-devices-mcx/mcux-devices-mcx/MCXE/MCXE247"));
+    lib.root_module.addIncludePath(b.path("../mcux-devices-mcx/mcux-devices-mcx/MCXE/periph0"));
+    lib.root_module.addIncludePath(b.path("../mcux-devices-mcx/mcux-devices-mcx/MCXE/MCXE247/drivers"));
+    lib.root_module.addIncludePath(cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/core/include"));
 
     // Install common headers
     lib.installHeadersDirectory(
@@ -56,37 +62,30 @@ pub fn build(b: *std.Build) void {
         .{ .include_extensions = &.{".h"} },
     );
 
-    // =========================================================================
-    // Device-Specific Drivers for MCXE247
-    // =========================================================================
-
-    if (std.mem.eql(u8, device, "MCXE247")) {
-        // GPIO Driver (gpio_1 variant for MCX E-series)
-        lib.root_module.addIncludePath(mcux_devices_mcx.artifact("mcux-devices-mcx").getEmittedIncludeTree().path(b, "mcux-devices-mcx/include"));
-
-        lib.root_module.addCSourceFile(.{
-            .file = b.path("mcuxsdk-core/drivers/gpio_1/fsl_gpio.c"),
-            .flags = &.{"-std=c99"},
-        });
-        lib.installHeadersDirectory(
-            b.path("mcuxsdk-core/drivers/port"),
-            "mcuxsdk-core/include",
-            .{ .include_extensions = &.{".h"} },
-        );
-    }
-    // Future support for MCXA156
-    else if (std.mem.eql(u8, device, "MCXA156")) {
-        // Similar driver configuration for MCXA156
-        // This would use different driver variants (lpc_gpio, etc.)
-        @panic("MCXA156 support not yet implemented");
-    }
+    // Install essential driver headers (without compiling source files)
+    // These headers are needed by board configuration files
+    lib.installHeadersDirectory(
+        b.path("mcuxsdk-core/drivers/port"),
+        "mcuxsdk-core/include",
+        .{ .include_extensions = &.{".h"} },
+    );
+    lib.installHeadersDirectory(
+        b.path("mcuxsdk-core/drivers/gpio_1"),
+        "mcuxsdk-core/include",
+        .{ .include_extensions = &.{".h"} },
+    );
+    lib.installHeadersDirectory(
+        b.path("mcuxsdk-core/drivers/lpuart"),
+        "mcuxsdk-core/include",
+        .{ .include_extensions = &.{".h"} },
+    );
 
     // =========================================================================
     // Compiler-specific definitions
     // =========================================================================
 
     // Define CPU architecture macros
-    lib.root_module.addCMacro("CPU_MCXE247VDF", "1");
+    lib.root_module.addCMacro("CPU_MCXE247VLQ", "1");
     lib.root_module.addCMacro("__STARTUP_CLEAR_BSS", "1");
     lib.root_module.addCMacro("__STARTUP_INITIALIZE_NONCACHEDATA", "1");
 

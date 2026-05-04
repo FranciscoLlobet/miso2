@@ -90,10 +90,12 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    exe.root_module.addImport("board", board.module("board"));
+
     exe.root_module.addObjectFile(b.path("external/picolibc/libc.a"));
 
-    //exe.root_module.addAssemblyFile(b.path("board/frdmmcxe247/startup/startup_MCXE247.S"));
-    exe.root_module.addObjectFile(board.artifact("board").getEmittedBin());
+    // Link against the board library (contains startup code, clock config, pin mux, system init)
+    exe.root_module.linkLibrary(board.artifact("board"));
 
     exe.setLinkerScript(b.path("board/frdmmcxe247/linker/MCXE247_flash.ld"));
 

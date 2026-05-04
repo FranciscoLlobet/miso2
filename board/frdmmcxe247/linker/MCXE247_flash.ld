@@ -201,6 +201,13 @@ SECTIONS
   __StackLimit = __StackTop - STACK_SIZE;
   PROVIDE(__stack = __StackTop);
 
+  /* Thread-Local Storage (TLS) support for picolibc */
+  /* Note: Basic embedded systems typically don't use TLS, but picolibc
+   * requires these symbols. We provide minimal stub support. */
+  __tls_base = __data_start__;
+  __tls_align = 4;
+  __arm32_tls_tcb_offset = 8;  /* ARM32 TLS TCB offset */
+
   .ARM.attributes 0 : { *(.ARM.attributes) }
 
   ASSERT(__StackLimit >= __HeapLimit, "region m_data_2 overflowed with stack and heap")

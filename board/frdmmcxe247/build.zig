@@ -36,42 +36,83 @@ pub fn build(b: *std.Build) void {
     // to our consumers. We must give it a name because a Zig package can expose
     // multiple modules and consumers will need to be able to specify which
     // module they want to access.
-    const lib_mod = b.createModule(.{
-        .root_source_file = b.path("src/root.zig"),
+    //const lib_mod = b.createModule(.{
+    //    .root_source_file = b.path("src/root.zig"),
+    //    .target = target,
+    //    .optimize = optimize,
+    //});
+
+    const mcux_devices_mcx = b.dependency("mcux_devices_mcx", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const mcuxsdk_core = b.dependency("mcuxsdk_core", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const cmsis_6 = b.dependency("cmsis_6", .{
         .target = target,
         .optimize = optimize,
     });
 
-    const lib = b.addLibrary(.{
-        .linkage = .static,
-        .name = "board",
-        .root_module = lib_mod,
+    // Create a Zig module for board-specific code (Zig only, no C files)
+    const board = b.addModule("board", .{
+        .root_source_file = b.path("src/board.zig"),
+        .target = target,
+        .optimize = optimize,
     });
 
-    const mcux_devices_mcx = b.dependency("mcux_devices_mcx", .{});
-    const mcuxsdk_core = b.dependency("mcuxsdk_core", .{});
-    const cmsis_6 = b.dependency("cmsis_6", .{});
+    // Create a static library for C board support files
+    // This library contains only C code and assembly, no Zig root module
+    const lib = b.addLibrary(.{
+        .name = "board",
+        .linkage = .static,
+        .root_module = b.createModule(.{
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
 
     // Board startup file
     lib.root_module.addAssemblyFile(b.path("startup/startup_MCXE247.S"));
 
-    // Board files
-    lib.root_module.addCSourceFiles(.{ .files = &.{
-        "board/clock_config.c",
-        "board/peripherals.c",
-        "board/pin_mux.c",
-        "board/system_MCXE247.c",
-    }, .flags = &.{
-        "-std=c99",
-        "-Og",
-        "-ffunction-sections",
-        "-fdata-sections",
-        "-DCPU_MCXE247VLQ",
-    } });
+    // Board C files (compiled into the static library only, not propagated to consumers)
+    lib.root_module.addCSourceFiles(.{
+        .root = b.path("."),
+        .files = &.{
+            "board/clock_config.c",
+            "board/peripherals.c",
+            "board/pin_mux.c",
+            "board/system_MCXE247.c",
+            "board/picolibc_stubs.c", // Picolibc runtime stubs
+        },
+        .flags = &.{
+            "-std=c99",
+            "-Og",
+            "-ffunction-sections",
+            "-fdata-sections",
+            "-DCPU_MCXE247VLQ",
+            "-D__START=zmain",
+        },
+    });
 
+    board.addCMacro("CPU_MCXE247VLQ", "1");
+    board.addCMacro("__ARM_ARCH_PROFILE", "M");
+    board.addIncludePath(b.path("board"));
+    board.addIncludePath(b.path("../../external/picolibc/include"));
+    board.addIncludePath(mcuxsdk_core.artifact("mcuxsdk-core").getEmittedIncludeTree().path(b, "mcuxsdk-core/include"));
+    board.addIncludePath(mcux_devices_mcx.artifact("mcux-devices-mcx").getEmittedIncludeTree().path(b, "mcux-devices-mcx/include"));
+    board.addIncludePath(cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/core/include"));
+
+    // Add include paths for C compilation
     lib.root_module.addIncludePath(b.path("../../external/picolibc/include"));
     lib.root_module.addIncludePath(mcuxsdk_core.artifact("mcuxsdk-core").getEmittedIncludeTree().path(b, "mcuxsdk-core/include"));
     lib.root_module.addIncludePath(mcux_devices_mcx.artifact("mcux-devices-mcx").getEmittedIncludeTree().path(b, "mcux-devices-mcx/include"));
     lib.root_module.addIncludePath(cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/core/include"));
+
+    // Link device-specific libraries (contains fsl_clock.c and device drivers)
+    lib.root_module.linkLibrary(mcux_devices_mcx.artifact("mcux-devices-mcx"));
+    lib.root_module.linkLibrary(mcuxsdk_core.artifact("mcuxsdk-core"));
+
     b.installArtifact(lib);
 }

@@ -35,6 +35,9 @@
         .cmsis_6 = .{
             .path = "../cmsis_6",
         },
+        .mcuxsdk_core = .{
+            .path = "../mcuxsdk-core",
+        },
         // See `zig fetch --save <url>` for a command-line interface for adding dependencies.
         //.example = .{
         //    // When updating this field to a new URL, be sure to delete the corresponding

@@ -32,8 +32,8 @@
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
     .dependencies = .{
-        .mcux_devices_mcx = .{
-            .path = "../mcux-devices-mcx",
+        .cmsis_6 = .{
+            .path = "../cmsis_6",
         },
         // See `zig fetch --save <url>` for a command-line interface for adding dependencies.
         //.example = .{

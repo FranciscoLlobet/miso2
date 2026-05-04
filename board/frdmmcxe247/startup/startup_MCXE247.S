@@ -372,7 +372,7 @@ Reset_Handler:
 #ifdef __REDLIB__
 #define __START __main
 #else
-#define __START _start
+#define __START zmain
 #endif
 #endif
 #ifndef __ATOLLIC__
