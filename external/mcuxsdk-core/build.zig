@@ -36,9 +36,12 @@ pub fn build(b: *std.Build) void {
 
     lib.root_module.addCSourceFiles(.{
         .files = &.{
-            "mcuxsdk-core/drivers/common/fsl_common.c",
-            "mcuxsdk-core/drivers/common/fsl_common_arm.c",
+            "common/fsl_common.c",
+            "common/fsl_common_arm.c",
+            "lpuart/fsl_lpuart.c",
+            "gpio/fsl_gpio.c",
         },
+        .root = b.path("mcuxsdk-core/drivers"),
         .flags = &.{
             "-std=c99",
             "-Wall",
@@ -49,6 +52,8 @@ pub fn build(b: *std.Build) void {
     });
 
     lib.root_module.addIncludePath(b.path("mcuxsdk-core/drivers/common"));
+    lib.root_module.addIncludePath(b.path("mcuxsdk-core/drivers/lpuart"));
+    lib.root_module.addIncludePath(b.path("mcuxsdk-core/drivers/gpio"));
     lib.root_module.addIncludePath(b.path("../picolibc/include"));
     lib.root_module.addIncludePath(b.path("../mcux-devices-mcx/mcux-devices-mcx/MCXE/MCXE247"));
     lib.root_module.addIncludePath(b.path("../mcux-devices-mcx/mcux-devices-mcx/MCXE/periph0"));
@@ -62,6 +67,12 @@ pub fn build(b: *std.Build) void {
         .{ .include_extensions = &.{".h"} },
     );
 
+    lib.installHeadersDirectory(
+        b.path("mcuxsdk-core/drivers/lpuart"),
+        "mcuxsdk-core/include",
+        .{ .include_extensions = &.{".h"} },
+    );
+
     // Install essential driver headers (without compiling source files)
     // These headers are needed by board configuration files
     lib.installHeadersDirectory(
@@ -70,7 +81,7 @@ pub fn build(b: *std.Build) void {
         .{ .include_extensions = &.{".h"} },
     );
     lib.installHeadersDirectory(
-        b.path("mcuxsdk-core/drivers/gpio_1"),
+        b.path("mcuxsdk-core/drivers/gpio"),
         "mcuxsdk-core/include",
         .{ .include_extensions = &.{".h"} },
     );

@@ -30,11 +30,11 @@
 /* clang-format off */
 /* TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
 !!GlobalInfo
-product: Clocks v19.0
+product: Clocks v20.0
 processor: MCXE247
 package_id: MCXE247VLQ
 mcu_data: ksdk2_0
-processor_version: 25.12.10
+processor_version: 26.03.20
 board: FRDM-MCXE247
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
 /* clang-format on */
@@ -138,14 +138,27 @@ called_from_default_init: true
 outputs:
 - {id: Bus_clock.outFreq, value: 48 MHz}
 - {id: Core_clock.outFreq, value: 48 MHz}
+- {id: FIRCDIV2_CLK.outFreq, value: 48 MHz}
 - {id: Flash_clock.outFreq, value: 24 MHz}
 - {id: LPO1K_CLK.outFreq, value: 1 kHz}
 - {id: LPO_CLK.outFreq, value: 128 kHz}
 - {id: LPO_clock.outFreq, value: 128 kHz}
+- {id: PCC.PCC_FLEXIO_CLK.outFreq, value: 8 MHz}
+- {id: PCC.PCC_LPUART2_CLK.outFreq, value: 8 MHz}
 - {id: Prediv_system_clock.outFreq, value: 48 MHz}
+- {id: SIRCDIV2_CLK.outFreq, value: 8 MHz}
 - {id: SIRC_CLK.outFreq, value: 8 MHz}
 - {id: System_clock.outFreq, value: 48 MHz}
 - {id: TRACECLKIN.outFreq, value: 48 MHz}
+settings:
+- {id: PCC.PCC_ENET_SEL.sel, value: SCG.FIRCDIV1_CLK}
+- {id: PCC.PCC_FLEXIO_SEL.sel, value: SCG.SIRCDIV2_CLK}
+- {id: PCC.PCC_LPUART2_SEL.sel, value: SCG.SIRCDIV2_CLK}
+- {id: SCG.FIRCDIV2.scale, value: '1', locked: true}
+- {id: SCG.SIRCDIV1.scale, value: '0', locked: true}
+- {id: SCG.SIRCDIV2.scale, value: '1', locked: true}
+sources:
+- {id: SCG.SOSC.outFreq, value: 8 MHz, enabled: true}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
 /* clang-format on */
 
@@ -163,14 +176,14 @@ const scg_sirc_config_t g_scgSircConfig_BOARD_BootClockRUN =
     {
         .enableMode = kSCG_SircEnable | kSCG_SircEnableInLowPower,/* Enable SIRC clock, Enable SIRC in low power mode */
         .div1 = kSCG_AsyncClkDisable,             /* Slow IRC Clock Divider 1: Clock output is disabled */
-        .div2 = kSCG_AsyncClkDisable,             /* Slow IRC Clock Divider 2: Clock output is disabled */
+        .div2 = kSCG_AsyncClkDivBy1,              /* Slow IRC Clock Divider 2: divided by 1 */
         .range = kSCG_SircRangeHigh,              /* Slow IRC high range clock (8 MHz) */
     };
 const scg_firc_config_t g_scgFircConfig_BOARD_BootClockRUN =
     {
         .enableMode = kSCG_FircEnable,            /* Enable FIRC clock */
         .div1 = kSCG_AsyncClkDisable,             /* Fast IRC Clock Divider 1: Clock output is disabled */
-        .div2 = kSCG_AsyncClkDisable,             /* Fast IRC Clock Divider 2: Clock output is disabled */
+        .div2 = kSCG_AsyncClkDivBy1,              /* Fast IRC Clock Divider 2: divided by 1 */
         .range = kSCG_FircRange48M,               /* Fast IRC is trimmed to 48MHz */
         .trimConfig = NULL,                       /* Disable trim */
     };
@@ -214,6 +227,14 @@ void BOARD_BootClockRUN_InitClockModule(clock_module_t module)
             /* Set Debug trace clock. */
             CLOCK_CONFIG_SetTraceClock(SIM_CHIPCTL_TRACECLK_SEL_CORECLK, 0, 0, true);
             break;
+        case kClockModule_PCC_LPUART2:
+            /* Set PCC LPUART2 selection */
+            CLOCK_SetIpSrc(kCLOCK_Lpuart2, kCLOCK_IpSrcSircAsync);
+            break;
+        case kClockModule_PCC_FlexIO:
+            /* Set PCC FlexIO selection */
+            CLOCK_SetIpSrc(kCLOCK_Flexio0, kCLOCK_IpSrcSircAsync);
+            break;
         default:
             assert(false);
             break;
@@ -227,8 +248,157 @@ void BOARD_BootClockRUN(void)
     BOARD_BootClockRUN_InitClockModule(kClockModule_SystemClkSrc);
     BOARD_BootClockRUN_InitClockModule(kClockModule_SCG_CLKOUTSEL);
     BOARD_BootClockRUN_InitClockModule(kClockModule_TRACEClkOut);
+    BOARD_BootClockRUN_InitClockModule(kClockModule_PCC_FlexIO);
+    BOARD_BootClockRUN_InitClockModule(kClockModule_PCC_LPUART2);
     BOARD_BootClockRUN_InitClockModule(kClockModule_LPO);
     /* Set SystemCoreClock variable. */
     SystemCoreClock = BOARD_BOOTCLOCKRUN_CORE_CLOCK;
+}
+
+/*******************************************************************************
+ ********************* Configuration ClocksFunc_FullSpeed **********************
+ ******************************************************************************/
+/* clang-format off */
+/* TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
+!!Configuration
+name: ClocksFunc_FullSpeed
+outputs:
+- {id: Bus_clock.outFreq, value: 80/9 MHz}
+- {id: Core_clock.outFreq, value: 80 MHz}
+- {id: Flash_clock.outFreq, value: 16 MHz}
+- {id: LPO1K_CLK.outFreq, value: 1 kHz}
+- {id: LPO_CLK.outFreq, value: 128 kHz}
+- {id: LPO_clock.outFreq, value: 128 kHz}
+- {id: Prediv_system_clock.outFreq, value: 160 MHz}
+- {id: SIRC_CLK.outFreq, value: 8 MHz}
+- {id: SOSC_CLK.outFreq, value: 8 MHz}
+- {id: System_clock.outFreq, value: 80 MHz}
+- {id: TRACECLKIN.outFreq, value: 80 MHz}
+settings:
+- {id: SCGMode, value: SPLL}
+- {id: SCG.DIVBUS.scale, value: '9'}
+- {id: SCG.DIVCORE.scale, value: '2', locked: true}
+- {id: SCG.DIVSLOW.scale, value: '5'}
+- {id: SCG.PREDIV.scale, value: '1', locked: true}
+- {id: SCG.SCSSEL.sel, value: SCG.SPLL_DIV2_CLK}
+- {id: SCG.SPLL_mul.scale, value: '40', locked: true}
+- {id: SCG_SOSCCSR_SOSCEN_CFG, value: Enabled}
+- {id: SCG_SPLLCSR_SPLLEN_CFG, value: Enabled}
+sources:
+- {id: SCG.SOSC.outFreq, value: 8 MHz, enabled: true}
+ * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
+/* clang-format on */
+
+/*******************************************************************************
+ * Variables for ClocksFunc_FullSpeed configuration
+ ******************************************************************************/
+const scg_sys_clk_config_t g_sysClkConfig_ClocksFunc_FullSpeed =
+    {
+        .divSlow = kSCG_SysClkDivBy5,             /* Slow Clock Divider: divided by 5 */
+        .divBus = kSCG_SysClkDivBy9,              /* Bus Clock Divider: divided by 9 */
+        .divCore = kSCG_SysClkDivBy2,             /* Core Clock Divider: divided by 2 */
+        .src = kSCG_SysClkSrcSysPll,              /* System PLL is selected as System Clock Source */
+    };
+const scg_sosc_config_t g_scgSysOscConfig_ClocksFunc_FullSpeed =
+    {
+        .freq = 8000000U,                         /* System Oscillator frequency: 8000000Hz */
+        .enableMode = kSCG_SysOscEnable,          /* Enable System OSC clock */
+        .monitorMode = kSCG_SysOscMonitorDisable, /* Monitor disabled */
+        .div1 = kSCG_AsyncClkDisable,             /* System OSC Clock Divider 1: Clock output is disabled */
+        .div2 = kSCG_AsyncClkDisable,             /* System OSC Clock Divider 2: Clock output is disabled */
+        .workMode = kSCG_SysOscModeExt,           /* Use external clock */
+    };
+const scg_sirc_config_t g_scgSircConfig_ClocksFunc_FullSpeed =
+    {
+        .enableMode = kSCG_SircEnable | kSCG_SircEnableInLowPower,/* Enable SIRC clock, Enable SIRC in low power mode */
+        .div1 = kSCG_AsyncClkDisable,             /* Slow IRC Clock Divider 1: Clock output is disabled */
+        .div2 = kSCG_AsyncClkDisable,             /* Slow IRC Clock Divider 2: Clock output is disabled */
+        .range = kSCG_SircRangeHigh,              /* Slow IRC high range clock (8 MHz) */
+    };
+const scg_firc_config_t g_scgFircConfig_ClocksFunc_FullSpeed =
+    {
+        .enableMode = kSCG_FircEnable,            /* Enable FIRC clock */
+        .div1 = kSCG_AsyncClkDisable,             /* Fast IRC Clock Divider 1: Clock output is disabled */
+        .div2 = kSCG_AsyncClkDisable,             /* Fast IRC Clock Divider 2: Clock output is disabled */
+        .range = kSCG_FircRange48M,               /* Fast IRC is trimmed to 48MHz */
+        .trimConfig = NULL,                       /* Disable trim */
+    };
+const scg_spll_config_t g_scgSysPllConfig_ClocksFunc_FullSpeed =
+    {
+        .enableMode = kSCG_SysPllEnable,          /* Enable SPLL clock */
+        .monitorMode = kSCG_SysPllMonitorDisable, /* Monitor disabled */
+        .div1 = kSCG_AsyncClkDisable,             /* System PLL Clock Divider 1: Clock output is disabled */
+        .div2 = kSCG_AsyncClkDisable,             /* System PLL Clock Divider 2: Clock output is disabled */
+        .prediv = 0,                              /* Divided by 1 */
+        .mult = 24,                               /* Multiply Factor is 40 */
+    };
+/*******************************************************************************
+ * Code for ClocksFunc_FullSpeed configuration
+ ******************************************************************************/
+void ClocksFunc_FullSpeed_InitClockModule(clock_module_t module)
+{
+    scg_sys_clk_config_t curConfig;
+
+    switch(module) {
+        case kClockModule_SOSC:
+            /* Init SOSC according to board configuration. */
+            CLOCK_InitSysOsc(&g_scgSysOscConfig_ClocksFunc_FullSpeed);
+            /* Set the XTAL0 frequency based on board settings. */
+            CLOCK_SetXtal0Freq(g_scgSysOscConfig_ClocksFunc_FullSpeed.freq);
+            break;
+        case kClockModule_FIRC:
+            /* Init FIRC.*/
+            CLOCK_CONFIG_FircSafeConfig(&g_scgFircConfig_ClocksFunc_FullSpeed);
+            break;
+        case kClockModule_PowerMode:
+            /* The RUN power mode is set after reset - no initialization code is provided. */
+            break;
+        case kClockModule_SIRC:
+            /* Init SIRC. */
+            CLOCK_InitSirc(&g_scgSircConfig_ClocksFunc_FullSpeed);
+            break;
+        case kClockModule_SPLL:
+            /* Init SysPll. */
+            CLOCK_InitSysPll(&g_scgSysPllConfig_ClocksFunc_FullSpeed);
+            break;
+        case kClockModule_SystemClkSrc:
+            /* Set SCG to SPLL mode. */
+            CLOCK_SetRunModeSysClkConfig(&g_sysClkConfig_ClocksFunc_FullSpeed);
+            /* Wait for clock source switch finished. */
+            do
+            {
+                 CLOCK_GetCurSysClkConfig(&curConfig);
+            } while (curConfig.src != g_sysClkConfig_ClocksFunc_FullSpeed.src);
+            break;
+        case kClockModule_SCG_CLKOUTSEL:
+            /* Set SCG CLKOUT selection. */
+            CLOCK_SetClkOutSel(kClockClkoutSelFirc);
+            break;
+        case kClockModule_LPO:
+            /* Enable LPO (enabled by default after power on reset). */
+            PMC->REGSC &= ~PMC_REGSC_LPODIS_MASK & 0xFFU;
+            break;
+        case kClockModule_TRACEClkOut:
+            /* Set Debug trace clock. */
+            CLOCK_CONFIG_SetTraceClock(SIM_CHIPCTL_TRACECLK_SEL_CORECLK, 0, 0, true);
+            break;
+        default:
+            assert(false);
+            break;
+    }
+}
+
+void ClocksFunc_FullSpeed(void)
+{
+    ClocksFunc_FullSpeed_InitClockModule(kClockModule_SOSC);
+    ClocksFunc_FullSpeed_InitClockModule(kClockModule_FIRC);
+    ClocksFunc_FullSpeed_InitClockModule(kClockModule_SIRC);
+    ClocksFunc_FullSpeed_InitClockModule(kClockModule_SPLL);
+    ClocksFunc_FullSpeed_InitClockModule(kClockModule_SystemClkSrc);
+    ClocksFunc_FullSpeed_InitClockModule(kClockModule_SCG_CLKOUTSEL);
+    ClocksFunc_FullSpeed_InitClockModule(kClockModule_TRACEClkOut);
+    ClocksFunc_FullSpeed_InitClockModule(kClockModule_LPO);
+    /* Set SystemCoreClock variable. */
+    SystemCoreClock = CLOCKSFUNC_FULLSPEED_CORE_CLOCK;
 }
 

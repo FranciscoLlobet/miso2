@@ -91,6 +91,7 @@ pub fn build(b: *std.Build) void {
     });
 
     exe.root_module.addImport("board", board.module("board"));
+    exe.root_module.addImport("cmsis_rtx", board.module("cmsis_rtx"));
 
     exe.root_module.addObjectFile(b.path("external/picolibc/libc.a"));
 

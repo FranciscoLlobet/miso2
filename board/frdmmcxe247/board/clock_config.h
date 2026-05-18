@@ -57,6 +57,7 @@ typedef enum {
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
+#define BOARD_XTAL0_CLK_HZ                          8000000U  /*!< Board xtal0 frequency in Hz */
 
 /*******************************************************************************
  ************************ BOARD_InitBootClocks function ************************
@@ -88,7 +89,7 @@ void BOARD_InitBootClocks(void);
 #define BOARD_BOOTCLOCKRUN_CLKOUT                     0UL            /* Clock consumers of CLKOUT output : N/A */
 #define BOARD_BOOTCLOCKRUN_CORE_CLOCK                 48000000UL     /* Clock consumers of Core_clock output : N/A */
 #define BOARD_BOOTCLOCKRUN_FIRCDIV1_CLK               0UL            /* Clock consumers of FIRCDIV1_CLK output : QuadSPI */
-#define BOARD_BOOTCLOCKRUN_FIRCDIV2_CLK               0UL            /* Clock consumers of FIRCDIV2_CLK output : N/A */
+#define BOARD_BOOTCLOCKRUN_FIRCDIV2_CLK               48000000UL     /* Clock consumers of FIRCDIV2_CLK output : N/A */
 #define BOARD_BOOTCLOCKRUN_FLASH_CLOCK                24000000UL     /* Clock consumers of Flash_clock output : FTFC */
 #define BOARD_BOOTCLOCKRUN_LPO1K_CLK                  1000UL         /* Clock consumers of LPO1K_CLK output : LPTMR0, RTC */
 #define BOARD_BOOTCLOCKRUN_LPO_CLK                    128000UL       /* Clock consumers of LPO_CLK output : WDOG */
@@ -96,7 +97,7 @@ void BOARD_InitBootClocks(void);
 #define BOARD_BOOTCLOCKRUN_PCC_ADC0_CLK               0UL            /* Clock consumers of PCC.PCC_ADC0_CLK output : ADC0 */
 #define BOARD_BOOTCLOCKRUN_PCC_ADC1_CLK               0UL            /* Clock consumers of PCC.PCC_ADC1_CLK output : ADC1 */
 #define BOARD_BOOTCLOCKRUN_PCC_ENET_CLK               0UL            /* Clock consumers of PCC.PCC_ENET_CLK output : ENET */
-#define BOARD_BOOTCLOCKRUN_PCC_FLEXIO_CLK             0UL            /* Clock consumers of PCC.PCC_FLEXIO_CLK output : FLEXIO */
+#define BOARD_BOOTCLOCKRUN_PCC_FLEXIO_CLK             8000000UL      /* Clock consumers of PCC.PCC_FLEXIO_CLK output : FLEXIO */
 #define BOARD_BOOTCLOCKRUN_PCC_FTM0_CLK               0UL            /* Clock consumers of PCC.PCC_FTM0_CLK output : FTM0 */
 #define BOARD_BOOTCLOCKRUN_PCC_FTM1_CLK               0UL            /* Clock consumers of PCC.PCC_FTM1_CLK output : FTM1 */
 #define BOARD_BOOTCLOCKRUN_PCC_FTM2_CLK               0UL            /* Clock consumers of PCC.PCC_FTM2_CLK output : FTM2 */
@@ -114,14 +115,14 @@ void BOARD_InitBootClocks(void);
 #define BOARD_BOOTCLOCKRUN_PCC_LPTMR0_CLK             0UL            /* Clock consumers of PCC.PCC_LPTMR0_CLK output : LPTMR0 */
 #define BOARD_BOOTCLOCKRUN_PCC_LPUART0_CLK            0UL            /* Clock consumers of PCC.PCC_LPUART0_CLK output : LPUART0 */
 #define BOARD_BOOTCLOCKRUN_PCC_LPUART1_CLK            0UL            /* Clock consumers of PCC.PCC_LPUART1_CLK output : LPUART1 */
-#define BOARD_BOOTCLOCKRUN_PCC_LPUART2_CLK            0UL            /* Clock consumers of PCC.PCC_LPUART2_CLK output : LPUART2 */
+#define BOARD_BOOTCLOCKRUN_PCC_LPUART2_CLK            8000000UL      /* Clock consumers of PCC.PCC_LPUART2_CLK output : LPUART2 */
 #define BOARD_BOOTCLOCKRUN_PLLDIV1_CLK                0UL            /* Clock consumers of PLLDIV1_CLK output : QuadSPI */
 #define BOARD_BOOTCLOCKRUN_PLLDIV2_CLK                0UL            /* Clock consumers of PLLDIV2_CLK output : N/A */
 #define BOARD_BOOTCLOCKRUN_PREDIV_SYSTEM_CLOCK        48000000UL     /* Clock consumers of Prediv_system_clock output : QuadSPI */
 #define BOARD_BOOTCLOCKRUN_RMIICLK                    0UL            /* Clock consumers of RMIICLK output : ENET */
 #define BOARD_BOOTCLOCKRUN_RTC_CLK                    0UL            /* Clock consumers of RTC_CLK output : FTM0, FTM1, FTM2, FTM3, FTM4, FTM5, FTM6, FTM7, LPTMR0, RTC */
 #define BOARD_BOOTCLOCKRUN_SIRCDIV1_CLK               0UL            /* Clock consumers of SIRCDIV1_CLK output : N/A */
-#define BOARD_BOOTCLOCKRUN_SIRCDIV2_CLK               0UL            /* Clock consumers of SIRCDIV2_CLK output : LPTMR0 */
+#define BOARD_BOOTCLOCKRUN_SIRCDIV2_CLK               8000000UL      /* Clock consumers of SIRCDIV2_CLK output : LPTMR0 */
 #define BOARD_BOOTCLOCKRUN_SIRC_CLK                   8000000UL      /* Clock consumers of SIRC_CLK output : WDOG */
 #define BOARD_BOOTCLOCKRUN_SOSCDIV1_CLK               0UL            /* Clock consumers of SOSCDIV1_CLK output : I2S0, I2S1 */
 #define BOARD_BOOTCLOCKRUN_SOSCDIV2_CLK               0UL            /* Clock consumers of SOSCDIV2_CLK output : CAN0, CAN1, CAN2 */
@@ -151,6 +152,92 @@ extern "C" {
  *
  */
 void BOARD_BootClockRUN(void);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus*/
+
+/*******************************************************************************
+ ********************* Configuration ClocksFunc_FullSpeed **********************
+ ******************************************************************************/
+/*******************************************************************************
+ * Definitions for ClocksFunc_FullSpeed configuration
+ ******************************************************************************/
+
+/* Clock outputs (values are in Hz): */
+#define CLOCKSFUNC_FULLSPEED_BUS_CLOCK                8888888UL      /* Clock consumers of Bus_clock output : ADC0, ADC1, CMP0, CRC, ENET, EWM, FLEXIO, I2S0, I2S1, LPI2C0, LPI2C1, LPIT0, LPSPI0, LPSPI1, LPSPI2, LPTMR0, LPUART0, LPUART1, LPUART2, PORTA, PORTB, PORTC, PORTD, PORTE, QuadSPI, RCM, RTC, WDOG */
+#define CLOCKSFUNC_FULLSPEED_CLKOUT                   0UL            /* Clock consumers of CLKOUT output : N/A */
+#define CLOCKSFUNC_FULLSPEED_CORE_CLOCK               80000000UL     /* Clock consumers of Core_clock output : N/A */
+#define CLOCKSFUNC_FULLSPEED_FIRCDIV1_CLK             0UL            /* Clock consumers of FIRCDIV1_CLK output : QuadSPI */
+#define CLOCKSFUNC_FULLSPEED_FIRCDIV2_CLK             0UL            /* Clock consumers of FIRCDIV2_CLK output : N/A */
+#define CLOCKSFUNC_FULLSPEED_FLASH_CLOCK              16000000UL     /* Clock consumers of Flash_clock output : FTFC */
+#define CLOCKSFUNC_FULLSPEED_LPO1K_CLK                1000UL         /* Clock consumers of LPO1K_CLK output : LPTMR0, RTC */
+#define CLOCKSFUNC_FULLSPEED_LPO_CLK                  128000UL       /* Clock consumers of LPO_CLK output : WDOG */
+#define CLOCKSFUNC_FULLSPEED_LPO_CLOCK                128000UL       /* Clock consumers of LPO_clock output : EWM, PORTA, PORTB, PORTC, PORTD, PORTE, RCM */
+#define CLOCKSFUNC_FULLSPEED_PCC_ADC0_CLK             0UL            /* Clock consumers of PCC.PCC_ADC0_CLK output : ADC0 */
+#define CLOCKSFUNC_FULLSPEED_PCC_ADC1_CLK             0UL            /* Clock consumers of PCC.PCC_ADC1_CLK output : ADC1 */
+#define CLOCKSFUNC_FULLSPEED_PCC_ENET_CLK             0UL            /* Clock consumers of PCC.PCC_ENET_CLK output : ENET */
+#define CLOCKSFUNC_FULLSPEED_PCC_FLEXIO_CLK           0UL            /* Clock consumers of PCC.PCC_FLEXIO_CLK output : FLEXIO */
+#define CLOCKSFUNC_FULLSPEED_PCC_FTM0_CLK             0UL            /* Clock consumers of PCC.PCC_FTM0_CLK output : FTM0 */
+#define CLOCKSFUNC_FULLSPEED_PCC_FTM1_CLK             0UL            /* Clock consumers of PCC.PCC_FTM1_CLK output : FTM1 */
+#define CLOCKSFUNC_FULLSPEED_PCC_FTM2_CLK             0UL            /* Clock consumers of PCC.PCC_FTM2_CLK output : FTM2 */
+#define CLOCKSFUNC_FULLSPEED_PCC_FTM3_CLK             0UL            /* Clock consumers of PCC.PCC_FTM3_CLK output : FTM3 */
+#define CLOCKSFUNC_FULLSPEED_PCC_FTM4_CLK             0UL            /* Clock consumers of PCC.PCC_FTM4_CLK output : FTM4 */
+#define CLOCKSFUNC_FULLSPEED_PCC_FTM5_CLK             0UL            /* Clock consumers of PCC.PCC_FTM5_CLK output : FTM5 */
+#define CLOCKSFUNC_FULLSPEED_PCC_FTM6_CLK             0UL            /* Clock consumers of PCC.PCC_FTM6_CLK output : FTM6 */
+#define CLOCKSFUNC_FULLSPEED_PCC_FTM7_CLK             0UL            /* Clock consumers of PCC.PCC_FTM7_CLK output : FTM7 */
+#define CLOCKSFUNC_FULLSPEED_PCC_LPI2C0_CLK           0UL            /* Clock consumers of PCC.PCC_LPI2C0_CLK output : LPI2C0 */
+#define CLOCKSFUNC_FULLSPEED_PCC_LPI2C1_CLK           0UL            /* Clock consumers of PCC.PCC_LPI2C1_CLK output : LPI2C1 */
+#define CLOCKSFUNC_FULLSPEED_PCC_LPIT0_CLK            0UL            /* Clock consumers of PCC.PCC_LPIT0_CLK output : LPIT0 */
+#define CLOCKSFUNC_FULLSPEED_PCC_LPSPI0_CLK           0UL            /* Clock consumers of PCC.PCC_LPSPI0_CLK output : LPSPI0 */
+#define CLOCKSFUNC_FULLSPEED_PCC_LPSPI1_CLK           0UL            /* Clock consumers of PCC.PCC_LPSPI1_CLK output : LPSPI1 */
+#define CLOCKSFUNC_FULLSPEED_PCC_LPSPI2_CLK           0UL            /* Clock consumers of PCC.PCC_LPSPI2_CLK output : LPSPI2 */
+#define CLOCKSFUNC_FULLSPEED_PCC_LPTMR0_CLK           0UL            /* Clock consumers of PCC.PCC_LPTMR0_CLK output : LPTMR0 */
+#define CLOCKSFUNC_FULLSPEED_PCC_LPUART0_CLK          0UL            /* Clock consumers of PCC.PCC_LPUART0_CLK output : LPUART0 */
+#define CLOCKSFUNC_FULLSPEED_PCC_LPUART1_CLK          0UL            /* Clock consumers of PCC.PCC_LPUART1_CLK output : LPUART1 */
+#define CLOCKSFUNC_FULLSPEED_PCC_LPUART2_CLK          0UL            /* Clock consumers of PCC.PCC_LPUART2_CLK output : LPUART2 */
+#define CLOCKSFUNC_FULLSPEED_PLLDIV1_CLK              0UL            /* Clock consumers of PLLDIV1_CLK output : QuadSPI */
+#define CLOCKSFUNC_FULLSPEED_PLLDIV2_CLK              0UL            /* Clock consumers of PLLDIV2_CLK output : N/A */
+#define CLOCKSFUNC_FULLSPEED_PREDIV_SYSTEM_CLOCK      160000000UL    /* Clock consumers of Prediv_system_clock output : QuadSPI */
+#define CLOCKSFUNC_FULLSPEED_RMIICLK                  0UL            /* Clock consumers of RMIICLK output : ENET */
+#define CLOCKSFUNC_FULLSPEED_RTC_CLK                  0UL            /* Clock consumers of RTC_CLK output : FTM0, FTM1, FTM2, FTM3, FTM4, FTM5, FTM6, FTM7, LPTMR0, RTC */
+#define CLOCKSFUNC_FULLSPEED_SIRCDIV1_CLK             0UL            /* Clock consumers of SIRCDIV1_CLK output : N/A */
+#define CLOCKSFUNC_FULLSPEED_SIRCDIV2_CLK             0UL            /* Clock consumers of SIRCDIV2_CLK output : LPTMR0 */
+#define CLOCKSFUNC_FULLSPEED_SIRC_CLK                 8000000UL      /* Clock consumers of SIRC_CLK output : WDOG */
+#define CLOCKSFUNC_FULLSPEED_SOSCDIV1_CLK             0UL            /* Clock consumers of SOSCDIV1_CLK output : I2S0, I2S1 */
+#define CLOCKSFUNC_FULLSPEED_SOSCDIV2_CLK             0UL            /* Clock consumers of SOSCDIV2_CLK output : CAN0, CAN1, CAN2 */
+#define CLOCKSFUNC_FULLSPEED_SOSC_CLK                 8000000UL      /* Clock consumers of SOSC_CLK output : WDOG */
+#define CLOCKSFUNC_FULLSPEED_SYSTEM_CLOCK             80000000UL     /* Clock consumers of System_clock output : CAN0, CAN1, CAN2, CoreDebug, DMA0, ENET, FTM0, FTM1, FTM2, FTM3, FTM4, FTM5, FTM6, FTM7, PDB0, PDB1, QuadSPI, SysTick */
+#define CLOCKSFUNC_FULLSPEED_TRACECLKIN               80000000UL     /* Clock consumers of TRACECLKIN output : CoreDebug */
+
+/*! @brief SCG set for ClocksFunc_FullSpeed configuration.
+ */
+extern const scg_sys_clk_config_t g_sysClkConfig_ClocksFunc_FullSpeed;
+/*! @brief System OSC set for ClocksFunc_FullSpeed configuration.
+ */
+extern const scg_sosc_config_t g_scgSysOscConfig_ClocksFunc_FullSpeed;
+/*! @brief SIRC set for ClocksFunc_FullSpeed configuration.
+ */
+extern const scg_sirc_config_t g_scgSircConfig_ClocksFunc_FullSpeed;
+/*! @brief FIRC set for ClocksFunc_FullSpeed configuration.
+ */
+extern const scg_firc_config_t g_scgFircConfigClocksFunc_FullSpeed;
+/*! @brief Low Power FLL set for ClocksFunc_FullSpeed configuration.
+ */
+extern const scg_spll_config_t g_scgSysPllConfigClocksFunc_FullSpeed;
+
+/*******************************************************************************
+ * API for ClocksFunc_FullSpeed configuration
+ ******************************************************************************/
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus*/
+
+/*!
+ * @brief This function executes configuration of clocks.
+ *
+ */
+void ClocksFunc_FullSpeed(void);
 
 #if defined(__cplusplus)
 }

@@ -60,3 +60,5 @@ dkms.conf
 .zig-out
 zig-out
 arm-toolchain
+
+*.bak

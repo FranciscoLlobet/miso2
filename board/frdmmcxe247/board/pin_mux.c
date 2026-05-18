@@ -18,7 +18,7 @@ product: Pins v17.0
 processor: MCXE247
 package_id: MCXE247VLQ
 mcu_data: ksdk2_0
-processor_version: 25.12.10
+processor_version: 26.03.20
 board: FRDM-MCXE247
 external_user_signals: {}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS ***********
@@ -27,6 +27,7 @@ external_user_signals: {}
 
 #include "fsl_common.h"
 #include "fsl_port.h"
+#include "fsl_gpio.h"
 #include "pin_mux.h"
 
 /* FUNCTION ************************************************************************************************************
@@ -39,6 +40,7 @@ void BOARD_InitBootPins(void)
 {
     BOARD_InitPins();
     BOARD_InitDEBUG_UARTPins();
+    BOARD_InitENET();
 }
 
 /* clang-format off */
@@ -99,9 +101,9 @@ void BOARD_InitDEBUG_UARTPins(void)
 BOARD_InitLEDsPins:
 - options: {callFromInitBoot: 'false', coreID: core0, enableClock: 'true'}
 - pin_list:
-  - {pin_num: '70', peripheral: GPIOC, signal: 'GPIO, 13', pin_signal: PTC13/FTM3_CH7/FTM2_CH7/LPUART2_RTS, identifier: ''}
-  - {pin_num: '107', peripheral: GPIOB, signal: 'GPIO, 11', pin_signal: PTB11/FTM3_CH3/LPI2C0_HREQ, identifier: ''}
-  - {pin_num: '71', peripheral: GPIOC, signal: 'GPIO, 12', pin_signal: PTC12/FTM3_CH6/FTM2_CH6/LPUART2_CTS, identifier: ''}
+  - {pin_num: '70', peripheral: GPIOC, signal: 'GPIO, 13', pin_signal: PTC13/FTM3_CH7/FTM2_CH7/LPUART2_RTS, direction: OUTPUT, gpio_init_state: 'false', drive_strength: high}
+  - {pin_num: '107', peripheral: GPIOB, signal: 'GPIO, 11', pin_signal: PTB11/FTM3_CH3/LPI2C0_HREQ, direction: OUTPUT, gpio_init_state: 'false', drive_strength: high}
+  - {pin_num: '71', peripheral: GPIOC, signal: 'GPIO, 12', pin_signal: PTC12/FTM3_CH6/FTM2_CH6/LPUART2_CTS, direction: OUTPUT, gpio_init_state: 'false', drive_strength: high}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS ***********
  */
 /* clang-format on */
@@ -119,14 +121,59 @@ void BOARD_InitLEDsPins(void)
     /* Clock Gate Control: Clock enabled. The current clock selection and divider options are locked and cannot be modified. */
     CLOCK_EnableClock(kCLOCK_PortC);
 
+    gpio_pin_config_t LED_GREEN_config = {
+        .pinDirection = kGPIO_DigitalOutput,
+        .outputLogic = 0U
+    };
+    /* Initialize GPIO functionality on pin PTB11 (pin 107)  */
+    GPIO_PinInit(BOARD_INITLEDSPINS_LED_GREEN_GPIO, BOARD_INITLEDSPINS_LED_GREEN_PIN, &LED_GREEN_config);
+
+    gpio_pin_config_t LED_BLUE_config = {
+        .pinDirection = kGPIO_DigitalOutput,
+        .outputLogic = 0U
+    };
+    /* Initialize GPIO functionality on pin PTC12 (pin 71)  */
+    GPIO_PinInit(BOARD_INITLEDSPINS_LED_BLUE_GPIO, BOARD_INITLEDSPINS_LED_BLUE_PIN, &LED_BLUE_config);
+
+    gpio_pin_config_t LED_RED_config = {
+        .pinDirection = kGPIO_DigitalOutput,
+        .outputLogic = 0U
+    };
+    /* Initialize GPIO functionality on pin PTC13 (pin 70)  */
+    GPIO_PinInit(BOARD_INITLEDSPINS_LED_RED_GPIO, BOARD_INITLEDSPINS_LED_RED_PIN, &LED_RED_config);
+
     /* PORTB11 (pin 107) is configured as PTB11 */
-    PORT_SetPinMux(PORTB, 11U, kPORT_MuxAsGpio);
+    PORT_SetPinMux(BOARD_INITLEDSPINS_LED_GREEN_PORT, BOARD_INITLEDSPINS_LED_GREEN_PIN, kPORT_MuxAsGpio);
+
+    PORTB->PCR[11] = ((PORTB->PCR[11] &
+                       /* Mask bits to zero which are setting */
+                       (~(PORT_PCR_DSE_MASK | PORT_PCR_ISF_MASK)))
+
+                      /* Drive Strength Enable: High drive strength is configured on the corresponding pin, if
+                       * pin is configured as a digital output. */
+                      | PORT_PCR_DSE(kPORT_HighDriveStrength));
 
     /* PORTC12 (pin 71) is configured as PTC12 */
-    PORT_SetPinMux(PORTC, 12U, kPORT_MuxAsGpio);
+    PORT_SetPinMux(BOARD_INITLEDSPINS_LED_BLUE_PORT, BOARD_INITLEDSPINS_LED_BLUE_PIN, kPORT_MuxAsGpio);
+
+    PORTC->PCR[12] = ((PORTC->PCR[12] &
+                       /* Mask bits to zero which are setting */
+                       (~(PORT_PCR_DSE_MASK | PORT_PCR_ISF_MASK)))
+
+                      /* Drive Strength Enable: High drive strength is configured on the corresponding pin, if
+                       * pin is configured as a digital output. */
+                      | PORT_PCR_DSE(kPORT_HighDriveStrength));
 
     /* PORTC13 (pin 70) is configured as PTC13 */
-    PORT_SetPinMux(PORTC, 13U, kPORT_MuxAsGpio);
+    PORT_SetPinMux(BOARD_INITLEDSPINS_LED_RED_PORT, BOARD_INITLEDSPINS_LED_RED_PIN, kPORT_MuxAsGpio);
+
+    PORTC->PCR[13] = ((PORTC->PCR[13] &
+                       /* Mask bits to zero which are setting */
+                       (~(PORT_PCR_DSE_MASK | PORT_PCR_ISF_MASK)))
+
+                      /* Drive Strength Enable: High drive strength is configured on the corresponding pin, if
+                       * pin is configured as a digital output. */
+                      | PORT_PCR_DSE(kPORT_HighDriveStrength));
 }
 
 /* clang-format off */
@@ -135,7 +182,9 @@ void BOARD_InitLEDsPins(void)
 BOARD_InitBUTTONsPins:
 - options: {callFromInitBoot: 'false', coreID: core0, enableClock: 'true'}
 - pin_list:
-  - {pin_num: '143', peripheral: GPIOA, signal: 'GPIO, 9', pin_signal: PTA9/LPUART2_TX/LPSPI2_PCS0/FXIO_D7/FTM3_FLT2/FTM1_FLT3/FTM4_FLT0, identifier: ''}
+  - {pin_num: '143', peripheral: GPIOA, signal: 'GPIO, 9', pin_signal: PTA9/LPUART2_TX/LPSPI2_PCS0/FXIO_D7/FTM3_FLT2/FTM1_FLT3/FTM4_FLT0, direction: INPUT, gpio_interrupt: kPORT_InterruptEitherEdge,
+    digital_filter: enable}
+  - {pin_num: '75', peripheral: GPIOC, signal: 'GPIO, 10', pin_signal: PTC10/FTM3_CH4/TRGMUX_IN11, direction: INPUT, gpio_interrupt: kPORT_InterruptEitherEdge}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS ***********
  */
 /* clang-format on */
@@ -150,9 +199,42 @@ void BOARD_InitBUTTONsPins(void)
 {
     /* Clock Gate Control: Clock enabled. The current clock selection and divider options are locked and cannot be modified. */
     CLOCK_EnableClock(kCLOCK_PortA);
+    /* Clock Gate Control: Clock enabled. The current clock selection and divider options are locked and cannot be modified. */
+    CLOCK_EnableClock(kCLOCK_PortC);
+
+    gpio_pin_config_t SW2_config = {
+        .pinDirection = kGPIO_DigitalInput,
+        .outputLogic = 0U
+    };
+    /* Initialize GPIO functionality on pin PTA9 (pin 143)  */
+    GPIO_PinInit(BOARD_INITBUTTONSPINS_SW2_GPIO, BOARD_INITBUTTONSPINS_SW2_PIN, &SW2_config);
+
+    gpio_pin_config_t SW3_config = {
+        .pinDirection = kGPIO_DigitalInput,
+        .outputLogic = 0U
+    };
+    /* Initialize GPIO functionality on pin PTC10 (pin 75)  */
+    GPIO_PinInit(BOARD_INITBUTTONSPINS_SW3_GPIO, BOARD_INITBUTTONSPINS_SW3_PIN, &SW3_config);
+    /* Configure digital filter */
+    PORT_EnablePinsDigitalFilter(
+        /* Digital filter is configured on port A */
+        PORTA,
+        /* Digital filter is configured for PORTA0 */
+        PORT_DFER_DFE_9_MASK,
+        /* Enable digital filter */
+        true);
 
     /* PORTA9 (pin 143) is configured as PTA9 */
-    PORT_SetPinMux(PORTA, 9U, kPORT_MuxAsGpio);
+    PORT_SetPinMux(BOARD_INITBUTTONSPINS_SW2_PORT, BOARD_INITBUTTONSPINS_SW2_PIN, kPORT_MuxAsGpio);
+
+    /* Interrupt configuration on PORTA9 (pin 143): Interrupt on either edge */
+    PORT_SetPinInterruptConfig(BOARD_INITBUTTONSPINS_SW2_PORT, BOARD_INITBUTTONSPINS_SW2_PIN, kPORT_InterruptEitherEdge);
+
+    /* PORTC10 (pin 75) is configured as PTC10 */
+    PORT_SetPinMux(BOARD_INITBUTTONSPINS_SW3_PORT, BOARD_INITBUTTONSPINS_SW3_PIN, kPORT_MuxAsGpio);
+
+    /* Interrupt configuration on PORTC10 (pin 75): Interrupt on either edge */
+    PORT_SetPinInterruptConfig(BOARD_INITBUTTONSPINS_SW3_PORT, BOARD_INITBUTTONSPINS_SW3_PIN, kPORT_InterruptEitherEdge);
 }
 
 /* clang-format off */
@@ -411,6 +493,230 @@ void BOARD_InitCANPins(void)
 
     /* PORTE5 (pin 8) is configured as CAN0_TX */
     PORT_SetPinMux(PORTE, 5U, kPORT_MuxAlt5);
+}
+
+/* clang-format off */
+/*
+ * TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
+BOARD_InitENET:
+- options: {createDeInit: 'true', callFromInitBoot: 'true', coreID: core0, enableClock: 'true'}
+- pin_list:
+  - {pin_num: '41', peripheral: ENET, signal: RMII_MDIO, pin_signal: PTB4/FTM0_CH4/LPSPI0_SOUT/MII_RMII_MDIO/TRGMUX_IN1/QSPI_B_IO0, identifier: ''}
+  - {pin_num: '39', peripheral: ENET, signal: RMII_MDC, pin_signal: PTE8/FTM0_CH6/MII_RMII_MDC/CMP0_IN3, identifier: ''}
+  - {pin_num: '44', peripheral: ENET, signal: RMII_TXD1, pin_signal: PTD7/LPUART2_TX/FTM2_FLT3/MII_RMII_TXD1/ETM_TRACE_D0/QSPI_A_IO1/CMP0_IN6}
+  - {pin_num: '47', peripheral: ENET, signal: RMII_TXEN, pin_signal: PTD12/FTM2_CH2/LPI2C1_HREQ/ETM_TRACE_D1/MII_RMII_TX_EN/LPUART2_RTS/QSPI_A_IO2}
+  - {pin_num: '52', peripheral: ENET, signal: RMII_RXD0, pin_signal: PTC1/FTM0_CH1/LPSPI2_SOUT/MII_RMII_RXD1/MII_RMII_RXD0/FTM1_CH7/QSPI_B_SCK/ADC0_SE9}
+  - {pin_num: '53', peripheral: ENET, signal: RMII_RXD1, pin_signal: PTC0/FTM0_CH0/LPSPI2_SIN/MII_RMII_RXD1/MII_RMII_RXD0/FTM1_CH6/QSPI_B_RWDS/ADC0_SE8}
+  - {pin_num: '43', peripheral: ENET, signal: RMII_TXD0, pin_signal: PTC2/FTM0_CH2/CAN0_RX/LPUART0_RX/MII_RMII_TXD0/ETM_TRACE_CLKOUT/QSPI_A_IO3/ADC0_SE10/CMP0_IN5}
+  - {pin_num: '56', peripheral: ENET, signal: RMII_CRS_DV, pin_signal: PTC17/FTM1_FLT3/CAN2_TX/LPI2C1_SCLS/MII_RMII_RX_DV/QSPI_B_IO6/ADC0_SE15}
+ * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS ***********
+ */
+/* clang-format on */
+
+/* FUNCTION ************************************************************************************************************
+ *
+ * Function Name : BOARD_InitENET
+ * Description   : Configures pin routing and optionally pin electrical features.
+ *
+ * END ****************************************************************************************************************/
+void BOARD_InitENET(void)
+{
+    /* Clock Gate Control: Clock enabled. The current clock selection and divider options are locked and cannot be modified. */
+    CLOCK_EnableClock(kCLOCK_PortB);
+    /* Clock Gate Control: Clock enabled. The current clock selection and divider options are locked and cannot be modified. */
+    CLOCK_EnableClock(kCLOCK_PortC);
+    /* Clock Gate Control: Clock enabled. The current clock selection and divider options are locked and cannot be modified. */
+    CLOCK_EnableClock(kCLOCK_PortD);
+    /* Clock Gate Control: Clock enabled. The current clock selection and divider options are locked and cannot be modified. */
+    CLOCK_EnableClock(kCLOCK_PortE);
+
+    /* PORTB4 (pin 41) is configured as MII_RMII_MDIO */
+    PORT_SetPinMux(PORTB, 4U, kPORT_MuxAlt5);
+
+    /* PORTC0 (pin 53) is configured as MII_RMII_RXD1 */
+    PORT_SetPinMux(BOARD_INITENET_MII_RMII_RXD_1_PORT, BOARD_INITENET_MII_RMII_RXD_1_PIN, kPORT_MuxAlt4);
+
+    /* PORTC1 (pin 52) is configured as MII_RMII_RXD0 */
+    PORT_SetPinMux(BOARD_INITENET_MII_RMII_RXD_0_PORT, BOARD_INITENET_MII_RMII_RXD_0_PIN, kPORT_MuxAlt5);
+
+    /* PORTC17 (pin 56) is configured as MII_RMII_RX_DV */
+    PORT_SetPinMux(BOARD_INITENET_MII_RMII_CRS_DV_PORT, BOARD_INITENET_MII_RMII_CRS_DV_PIN, kPORT_MuxAlt5);
+
+    /* PORTC2 (pin 43) is configured as MII_RMII_TXD0 */
+    PORT_SetPinMux(BOARD_INITENET_MII_RMII_TXD_0_PORT, BOARD_INITENET_MII_RMII_TXD_0_PIN, kPORT_MuxAlt5);
+
+    /* PORTD12 (pin 47) is configured as MII_RMII_TX_EN */
+    PORT_SetPinMux(BOARD_INITENET_MII_RMII_TX_EN_PORT, BOARD_INITENET_MII_RMII_TX_EN_PIN, kPORT_MuxAlt5);
+
+    /* PORTD7 (pin 44) is configured as MII_RMII_TXD1 */
+    PORT_SetPinMux(BOARD_INITENET_MII_RMII_TXD_1_PORT, BOARD_INITENET_MII_RMII_TXD_1_PIN, kPORT_MuxAlt5);
+
+    /* PORTE8 (pin 39) is configured as MII_RMII_MDC */
+    PORT_SetPinMux(PORTE, 8U, kPORT_MuxAlt5);
+}
+
+/* FUNCTION ************************************************************************************************************
+ *
+ * Function Name : BOARD_InitENET_deinit
+ * Description   : This is a de-initialization function for 'BOARD_InitENET' function.
+ * It sets all pins features (routing, direction and electrical) to their after-reset state.
+ * It also tries to route the previous peripheral signals to their default pins.
+ *
+ * END ****************************************************************************************************************/
+void BOARD_InitENET_deinit(void)
+{
+    /* Clock Gate Control: Clock enabled. The current clock selection and divider options are locked and cannot be modified. */
+    CLOCK_EnableClock(kCLOCK_PortB);
+    /* Clock Gate Control: Clock enabled. The current clock selection and divider options are locked and cannot be modified. */
+    CLOCK_EnableClock(kCLOCK_PortC);
+    /* Clock Gate Control: Clock enabled. The current clock selection and divider options are locked and cannot be modified. */
+    CLOCK_EnableClock(kCLOCK_PortD);
+    /* Clock Gate Control: Clock enabled. The current clock selection and divider options are locked and cannot be modified. */
+    CLOCK_EnableClock(kCLOCK_PortE);
+    /* Configure digital filter */
+    PORT_EnablePinsDigitalFilter(
+        /* Digital filter is configured on port B */
+        PORTB,
+        /* Digital filter is configured for PORTB0 */
+        PORT_DFER_DFE_4_MASK,
+        /* Disable digital filter */
+        false);
+
+    const port_pin_config_t MII_RMII_MDIO = {/* Internal pull-up/down resistor is disabled */
+                                             kPORT_PullDisable,
+                                             /* Passive filter is disabled */
+                                             kPORT_PassiveFilterDisable,
+                                             /* Low drive strength is configured */
+                                             kPORT_LowDriveStrength,
+                                             /* Pin is disabled */
+                                             kPORT_PinDisabledOrAnalog,
+                                             /* Pin Control Register fields [15:0] are not locked */
+                                             kPORT_UnlockRegister};
+    /* PORTB4 (pin 41) is disabled */
+    PORT_SetPinConfig(BOARD_INITENET_DEINIT_MII_RMII_MDIO_PORT, BOARD_INITENET_DEINIT_MII_RMII_MDIO_PIN, &MII_RMII_MDIO);
+    /* Configure digital filter */
+    PORT_EnablePinsDigitalFilter(
+        /* Digital filter is configured on port C */
+        PORTC,
+        /* Digital filter is configured for PORTC0 */
+          PORT_DFER_DFE_0_MASK
+            /* Digital filter is configured for PORTC1 */
+            | PORT_DFER_DFE_1_MASK
+            /* Digital filter is configured for PORTC2 */
+            | PORT_DFER_DFE_2_MASK
+            /* Digital filter is configured for PORTC3 */
+            | PORT_DFER_DFE_17_MASK,
+        /* Disable digital filter */
+        false);
+
+    const port_pin_config_t MII_RMII_RXD_1 = {/* Internal pull-up/down resistor is disabled */
+                                              kPORT_PullDisable,
+                                              /* Passive filter is disabled */
+                                              kPORT_PassiveFilterDisable,
+                                              /* Low drive strength is configured */
+                                              kPORT_LowDriveStrength,
+                                              /* Pin is configured as ADC0_SE8 */
+                                              kPORT_PinDisabledOrAnalog,
+                                              /* Pin Control Register fields [15:0] are not locked */
+                                              kPORT_UnlockRegister};
+    /* PORTC0 (pin 53) is configured as ADC0_SE8 */
+    PORT_SetPinConfig(BOARD_INITENET_DEINIT_MII_RMII_RXD_1_PORT, BOARD_INITENET_DEINIT_MII_RMII_RXD_1_PIN, &MII_RMII_RXD_1);
+
+    const port_pin_config_t MII_RMII_RXD_0 = {/* Internal pull-up/down resistor is disabled */
+                                              kPORT_PullDisable,
+                                              /* Passive filter is disabled */
+                                              kPORT_PassiveFilterDisable,
+                                              /* Low drive strength is configured */
+                                              kPORT_LowDriveStrength,
+                                              /* Pin is configured as ADC0_SE9 */
+                                              kPORT_PinDisabledOrAnalog,
+                                              /* Pin Control Register fields [15:0] are not locked */
+                                              kPORT_UnlockRegister};
+    /* PORTC1 (pin 52) is configured as ADC0_SE9 */
+    PORT_SetPinConfig(BOARD_INITENET_DEINIT_MII_RMII_RXD_0_PORT, BOARD_INITENET_DEINIT_MII_RMII_RXD_0_PIN, &MII_RMII_RXD_0);
+
+    const port_pin_config_t MII_RMII_CRS_DV = {/* Internal pull-up/down resistor is disabled */
+                                               kPORT_PullDisable,
+                                               /* Passive filter is disabled */
+                                               kPORT_PassiveFilterDisable,
+                                               /* Low drive strength is configured */
+                                               kPORT_LowDriveStrength,
+                                               /* Pin is configured as ADC0_SE15 */
+                                               kPORT_PinDisabledOrAnalog,
+                                               /* Pin Control Register fields [15:0] are not locked */
+                                               kPORT_UnlockRegister};
+    /* PORTC17 (pin 56) is configured as ADC0_SE15 */
+    PORT_SetPinConfig(BOARD_INITENET_DEINIT_MII_RMII_CRS_DV_PORT, BOARD_INITENET_DEINIT_MII_RMII_CRS_DV_PIN, &MII_RMII_CRS_DV);
+
+    const port_pin_config_t MII_RMII_TXD_0 = {/* Internal pull-up/down resistor is disabled */
+                                              kPORT_PullDisable,
+                                              /* Passive filter is disabled */
+                                              kPORT_PassiveFilterDisable,
+                                              /* Low drive strength is configured */
+                                              kPORT_LowDriveStrength,
+                                              /* Pin is configured as ADC0_SE10, CMP0_IN5 */
+                                              kPORT_PinDisabledOrAnalog,
+                                              /* Pin Control Register fields [15:0] are not locked */
+                                              kPORT_UnlockRegister};
+    /* PORTC2 (pin 43) is configured as ADC0_SE10, CMP0_IN5 */
+    PORT_SetPinConfig(BOARD_INITENET_DEINIT_MII_RMII_TXD_0_PORT, BOARD_INITENET_DEINIT_MII_RMII_TXD_0_PIN, &MII_RMII_TXD_0);
+    /* Configure digital filter */
+    PORT_EnablePinsDigitalFilter(
+        /* Digital filter is configured on port D */
+        PORTD,
+        /* Digital filter is configured for PORTD0 */
+          PORT_DFER_DFE_7_MASK
+            /* Digital filter is configured for PORTD1 */
+            | PORT_DFER_DFE_12_MASK,
+        /* Disable digital filter */
+        false);
+
+    const port_pin_config_t MII_RMII_TX_EN = {/* Internal pull-up/down resistor is disabled */
+                                              kPORT_PullDisable,
+                                              /* Passive filter is disabled */
+                                              kPORT_PassiveFilterDisable,
+                                              /* Low drive strength is configured */
+                                              kPORT_LowDriveStrength,
+                                              /* Pin is disabled */
+                                              kPORT_PinDisabledOrAnalog,
+                                              /* Pin Control Register fields [15:0] are not locked */
+                                              kPORT_UnlockRegister};
+    /* PORTD12 (pin 47) is disabled */
+    PORT_SetPinConfig(BOARD_INITENET_DEINIT_MII_RMII_TX_EN_PORT, BOARD_INITENET_DEINIT_MII_RMII_TX_EN_PIN, &MII_RMII_TX_EN);
+
+    const port_pin_config_t MII_RMII_TXD_1 = {/* Internal pull-up/down resistor is disabled */
+                                              kPORT_PullDisable,
+                                              /* Passive filter is disabled */
+                                              kPORT_PassiveFilterDisable,
+                                              /* Low drive strength is configured */
+                                              kPORT_LowDriveStrength,
+                                              /* Pin is configured as CMP0_IN6 */
+                                              kPORT_PinDisabledOrAnalog,
+                                              /* Pin Control Register fields [15:0] are not locked */
+                                              kPORT_UnlockRegister};
+    /* PORTD7 (pin 44) is configured as CMP0_IN6 */
+    PORT_SetPinConfig(BOARD_INITENET_DEINIT_MII_RMII_TXD_1_PORT, BOARD_INITENET_DEINIT_MII_RMII_TXD_1_PIN, &MII_RMII_TXD_1);
+    /* Configure digital filter */
+    PORT_EnablePinsDigitalFilter(
+        /* Digital filter is configured on port E */
+        PORTE,
+        /* Digital filter is configured for PORTE0 */
+        PORT_DFER_DFE_8_MASK,
+        /* Disable digital filter */
+        false);
+
+    const port_pin_config_t MII_RMII_MDC = {/* Internal pull-up/down resistor is disabled */
+                                            kPORT_PullDisable,
+                                            /* Passive filter is disabled */
+                                            kPORT_PassiveFilterDisable,
+                                            /* Low drive strength is configured */
+                                            kPORT_LowDriveStrength,
+                                            /* Pin is configured as CMP0_IN3 */
+                                            kPORT_PinDisabledOrAnalog,
+                                            /* Pin Control Register fields [15:0] are not locked */
+                                            kPORT_UnlockRegister};
+    /* PORTE8 (pin 39) is configured as CMP0_IN3 */
+    PORT_SetPinConfig(BOARD_INITENET_DEINIT_MII_RMII_MDC_PORT, BOARD_INITENET_DEINIT_MII_RMII_MDC_PIN, &MII_RMII_MDC);
 }
 /***********************************************************************************************************************
  * EOF
