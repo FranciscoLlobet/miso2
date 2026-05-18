@@ -54,6 +54,13 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    const cmsis_rtx_dep = b.dependency("cmsis_rtx", .{
+        .target = target,
+        .optimize = optimize,
+        .device_header = @as([]const u8, "fsl_device_registers.h"),
+    });
+    const cmsis_rtx_lib = cmsis_rtx_dep.artifact("cmsis_rtx");
+    const cmsis_rtx_mod = cmsis_rtx_dep.module("cmsis_rtx");
 
     // Create a Zig module for board-specific code (Zig only, no C files)
     const board = b.addModule("board", .{
@@ -61,6 +68,19 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    // Include paths for @cImport in board.zig and any driver code that imports
+    // this module.  Note: __ARM_ARCH_PROFILE is intentionally NOT set here —
+    // Zig's clang defines it correctly ('M') for cortex_m4 automatically.
+    // Setting it to the bare identifier M (not the char literal 'M') breaks
+    // the cmsis_gcc.h architecture check.
+    board.addCMacro("CPU_MCXE247VLQ", "1");
+    board.addIncludePath(b.path("src")); // for cimport.h
+    board.addIncludePath(b.path("board"));
+    board.addIncludePath(b.path("../../external/picolibc/include"));
+    board.addIncludePath(mcuxsdk_core.artifact("mcuxsdk-core").getEmittedIncludeTree().path(b, "mcuxsdk-core/include"));
+    board.addIncludePath(mcux_devices_mcx.artifact("mcux-devices-mcx").getEmittedIncludeTree().path(b, "mcux-devices-mcx/include"));
+    board.addIncludePath(cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/core/include"));
 
     // Create a static library for C board support files
     // This library contains only C code and assembly, no Zig root module
@@ -96,14 +116,6 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    board.addCMacro("CPU_MCXE247VLQ", "1");
-    board.addCMacro("__ARM_ARCH_PROFILE", "M");
-    board.addIncludePath(b.path("board"));
-    board.addIncludePath(b.path("../../external/picolibc/include"));
-    board.addIncludePath(mcuxsdk_core.artifact("mcuxsdk-core").getEmittedIncludeTree().path(b, "mcuxsdk-core/include"));
-    board.addIncludePath(mcux_devices_mcx.artifact("mcux-devices-mcx").getEmittedIncludeTree().path(b, "mcux-devices-mcx/include"));
-    board.addIncludePath(cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/core/include"));
-
     // Add include paths for C compilation
     lib.root_module.addIncludePath(b.path("../../external/picolibc/include"));
     lib.root_module.addIncludePath(mcuxsdk_core.artifact("mcuxsdk-core").getEmittedIncludeTree().path(b, "mcuxsdk-core/include"));
@@ -113,6 +125,26 @@ pub fn build(b: *std.Build) void {
     // Link device-specific libraries (contains fsl_clock.c and device drivers)
     lib.root_module.linkLibrary(mcux_devices_mcx.artifact("mcux-devices-mcx"));
     lib.root_module.linkLibrary(mcuxsdk_core.artifact("mcuxsdk-core"));
+
+    // Inject board RTX config and NXP device headers into cmsis_rtx
+    cmsis_rtx_lib.root_module.addCMacro("CPU_MCXE247VLQ", "1");
+    const rtx_config_path = b.path("rtx_config");
+    const device_include = mcux_devices_mcx.artifact("mcux-devices-mcx")
+        .getEmittedIncludeTree().path(b, "mcux-devices-mcx/include");
+    cmsis_rtx_lib.root_module.addIncludePath(rtx_config_path);
+    cmsis_rtx_lib.root_module.addIncludePath(device_include);
+    cmsis_rtx_mod.addIncludePath(rtx_config_path);
+    cmsis_rtx_mod.addIncludePath(device_include);
+
+    // Make cmsis_rtx available for import inside board.zig
+    board.addImport("cmsis_rtx", cmsis_rtx_mod);
+
+    // Link cmsis_rtx into the board lib so root only needs to link board
+    lib.root_module.linkLibrary(cmsis_rtx_lib);
+
+    // Expose the configured cmsis_rtx module directly to consumers of this package.
+    // b.modules is the authoritative map that b.dependency().module() reads from.
+    b.modules.put(b.allocator, b.dupe("cmsis_rtx"), cmsis_rtx_mod) catch @panic("OOM");
 
     b.installArtifact(lib);
 }

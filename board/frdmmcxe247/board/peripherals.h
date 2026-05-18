@@ -17,10 +17,53 @@
  * Included files
  **********************************************************************************************************************/
 #include "fsl_common.h"
+#include "fsl_lpuart.h"
+#include "fsl_clock.h"
+#include "fsl_gpio.h"
 
 #if defined(__cplusplus)
 extern "C" {
 #endif /* __cplusplus */
+
+/***********************************************************************************************************************
+ * Definitions
+ **********************************************************************************************************************/
+/* Definitions for BOARD_InitPeripherals functional group */
+/* Definition of peripheral ID */
+#define LPUART2_PERIPHERAL LPUART2
+/* Definition of the clock source frequency */
+#define LPUART2_CLOCK_SOURCE 8000000UL
+/* LPUART2 interrupt vector ID (number). */
+#define LPUART2_SERIAL_RX_TX_IRQN LPUART2_IRQn
+/* LPUART2 interrupt vector priority. */
+#define LPUART2_SERIAL_RX_TX_IRQ_PRIORITY 5
+/* LPUART2 interrupt handler identifier. */
+#define LPUART2_SERIAL_RX_TX_IRQHANDLER LPUART2_IRQHandler
+/* Alias for GPIOA peripheral */
+#define GPIOA_GPIO GPIOA
+/* Alias for PORTA */
+#define GPIOA_PORT PORTA
+/* GPIOA interrupt vector ID (number). */
+#define GPIOA_IRQN PORTA_IRQn
+/* GPIOA interrupt vector priority. */
+#define GPIOA_IRQ_PRIORITY 5
+/* GPIOA interrupt handler identifier. */
+#define GPIOA_IRQHANDLER PORTA_IRQHandler
+/* Alias for GPIOC peripheral */
+#define GPIOC_GPIO GPIOC
+/* Alias for PORTC */
+#define GPIOC_PORT PORTC
+/* GPIOC interrupt vector ID (number). */
+#define GPIOC_IRQN PORTC_IRQn
+/* GPIOC interrupt vector priority. */
+#define GPIOC_IRQ_PRIORITY 5
+/* GPIOC interrupt handler identifier. */
+#define GPIOC_IRQHANDLER PORTC_IRQHandler
+
+/***********************************************************************************************************************
+ * Global variables
+ **********************************************************************************************************************/
+extern const lpuart_config_t LPUART2_config;
 
 /***********************************************************************************************************************
  * Initialization functions

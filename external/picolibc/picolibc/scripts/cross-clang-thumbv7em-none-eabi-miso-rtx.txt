@@ -5,9 +5,9 @@
 # requires at least version 0.54.2 of meson.
 c = ['ccache', 'clang-18', '-m32', '-target', 'thumbv7em-none-eabi', '-mfloat-abi=hard', '-mfpu=fpv4-sp-d16', '-nostdlib', '-ffreestanding']
 c_ld = '/usr/bin/arm-none-eabi-ld'
-ar = 'llvm-ar-18'
+ar = '/usr/bin/arm-none-eabi-ar'
 as =  ['ccache', 'clang-18', '-m32', '-target', 'thumbv7em-none-eabi', '-mfloat-abi=hard', '-mfpu=fpv4-sp-d16', '-nostdlib', '-ffreestanding']
-nm = 'llvm-nm-18'
+nm = '/usr/bin/arm-none-eabi-nm'
 strip = 'arm-none-eabi-strip'
 # only needed to run tests
 exe_wrapper = ['sh', '-c', 'test -z "$PICOLIBC_TEST" || run-arm "$@"', 'run-arm']
@@ -29,11 +29,12 @@ c_link_args = [
     '-L/usr/lib/gcc/arm-none-eabi/12.2.1/thumb/v7e-m/fpv4-sp/hard',
     '-L/usr/lib/gcc/arm-none-eabi/12.3.1/thumb/v7e-m/fpv4-sp/hard',
     '-L/usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m/fpv4-sp/hard',
+    '-L/usr/lib/gcc/arm-none-eabi/15.2.0/thumb/v7e-m/fpv4-sp/hard',
     '-Wl,-z,noexecstack',
     '-Wno-unused-command-line-argument']
 
 skip_sanity_check = true
-default_flash_addr = '0x08000000'
-default_flash_size = '0x00080000'
+default_flash_addr = '0x00000000'
+default_flash_size = '0x00200000'
 default_ram_addr   = '0x20000000'
-default_ram_size   = '0x00020000'
+default_ram_size   = '0x00040000'

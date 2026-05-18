@@ -1,0 +1,16 @@
+.{
+    .name = .cmsis_rtx,
+    .version = "0.0.0",
+    .fingerprint = 0x5596f4a871ef5ea7,
+    .minimum_zig_version = "0.16.0",
+    .dependencies = .{
+        .cmsis_6 = .{
+            .path = "../cmsis_6",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
