@@ -50,7 +50,7 @@
 #define OS_IDLE_THREAD_ZONE         0
 
 #define OS_STACK_CHECK              1
-#define OS_STACK_WATERMARK          0
+#define OS_STACK_WATERMARK          1
 #define OS_PRIVILEGE_MODE           1
 
 /* Timer configuration */

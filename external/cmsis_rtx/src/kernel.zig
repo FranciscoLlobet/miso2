@@ -18,7 +18,7 @@ pub const osError = core.osError;
 
 const osErrorMap = core.osErrorMap;
 
-pub const ErrorNotifyFn = *const fn (code: u32, object_id: ?*anyopaque) u32;
+pub const ErrorNotifyFn = *const fn (code: osError!void, object_id: ?*anyopaque) u32;
 
 pub const IdleThreadFn = *const fn (in: ?*anyopaque) noreturn;
 
@@ -62,7 +62,7 @@ pub fn Kernel(
         }
 
         export fn osRtxErrorNotify(code: u32, object_id: ?*anyopaque) callconv(.c) u32 {
-            return ErrorNotify(code, object_id);
+            return ErrorNotify(osErrorMap(@intCast(code)), object_id);
         }
 
         export fn osRtxIdleThread(in: ?*anyopaque) callconv(.c) noreturn {

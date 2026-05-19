@@ -64,7 +64,10 @@ pub fn MessageQueue(comptime T: type) type {
             var msg: T = undefined;
             var priority: u8 = undefined;
 
-            return if (self.get(&msg, &priority, timeout orelse core.osWaitForever)) .{ .msg = msg, .priority = priority } else |err| switch (err) {
+            return if (self.get(&msg, &priority, timeout orelse core.osWaitForever)) .{
+                .msg = msg,
+                .priority = priority,
+            } else |err| switch (err) {
                 osError.osErrorTimeout, osError.osErrorResource => null,
                 else => err,
             };

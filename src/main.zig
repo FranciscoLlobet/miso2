@@ -26,10 +26,8 @@ pub fn JobQueue(
         }
 
         fn queueRunner(self: ?*@This()) void {
-            const jq = self.?;
-
             while (true) {
-                const job = jq.queue.getMsg(rtx.osWaitForever) catch {
+                const job = self.?.queue.getMsg(rtx.osWaitForever) catch {
                     continue;
                 };
 
@@ -60,7 +58,7 @@ pub fn JobQueue(
 var jobQueue: JobQueue(
     JobMsg(anyopaque),
     "main executor",
-    512,
+    1024,
     .osPriorityAboveNormal,
     10,
 ) = undefined;
@@ -114,9 +112,9 @@ export fn zmain() noreturn {
     unreachable;
 }
 
-fn errorNotify(code: u32, object_id: ?*anyopaque) u32 {
-    _ = code;
+fn errorNotify(code: rtx.osError!void, object_id: ?*anyopaque) u32 {
     _ = object_id;
+    _ = code catch {};
 
     while (true) {
         //

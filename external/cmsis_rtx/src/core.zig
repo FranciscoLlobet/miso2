@@ -14,15 +14,7 @@
 pub const c_rtx = @import("c.zig").c_rtx;
 
 // Error type for OS errors
-pub const osError = error{
-    osError,
-    osErrorTimeout,
-    osErrorResource,
-    osErrorParameter,
-    osErrorNoMemory,
-    osErrorISR,
-    osErrorSafetyClass,
-};
+pub const osError = error{ osError, osErrorTimeout, osErrorResource, osErrorParameter, osErrorNoMemory, osErrorISR, osErrorSafetyClass, osRtxErrorStackOverflow, osRtxErrorISRQueueOverflow, osRtxErrorTimerQueueOverflow, osRtxErrorClibSpace, osRtxErrorClibMutex, osRtxErrorSVC };
 
 // Error type for OS flags
 pub const osFlagsError = error{
@@ -64,6 +56,13 @@ pub fn osErrorMap(osStatus: osStatus_t) osError!void {
         c_rtx.osErrorParameter => osError.osErrorParameter,
         c_rtx.osErrorNoMemory => osError.osErrorNoMemory,
         c_rtx.osErrorSafetyClass => osError.osErrorSafetyClass,
+
+        c_rtx.osRtxErrorStackOverflow => osError.osRtxErrorStackOverflow,
+        c_rtx.osRtxErrorISRQueueOverflow => osError.osRtxErrorISRQueueOverflow,
+        c_rtx.osRtxErrorTimerQueueOverflow => osError.osRtxErrorTimerQueueOverflow,
+        c_rtx.osRtxErrorClibSpace => osError.osRtxErrorClibSpace,
+        c_rtx.osRtxErrorClibMutex => osError.osRtxErrorClibMutex,
+        c_rtx.osRtxErrorSVC => osError.osRtxErrorSVC,
         else => osError.osError,
     };
 }
