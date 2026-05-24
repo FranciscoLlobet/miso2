@@ -1,6 +1,5 @@
 const c = @import("c.zig").c;
 const rtx = @import("cmsis_rtx");
-const runtime = @import("runtime.zig");
 
 const GPIO_Type = c.GPIO_Type;
 
@@ -82,9 +81,7 @@ pub fn Button(
             return @atomicLoad(@TypeOf(self.state), &self.state, .seq_cst);
         }
 
-        fn timerJob(param: ?*anyopaque) void {
-            const self = @as(?*@This(), @ptrCast(@alignCast(param))) orelse unreachable;
-
+        fn timerJob(self: *@This()) callconv(.c) void {
             self.debounce_timer.start(20) catch unreachable;
         }
 
@@ -97,11 +94,14 @@ pub fn Button(
                 .seq_cst,
             );
 
-            runtime.hwJobQueue.send(timerJob, @ptrCast(@alignCast(self)), 0) catch unreachable;
+            rtx.kernel.Hacks.osKernelTimer(@This()).send(
+                timerJob,
+                self,
+            ) catch unreachable;
         }
 
-        pub fn setCallback(self: *@This(), callback: ButtonChangeCallback) !void {
-            self.callback = callback;
+        pub fn setCallback(self: *@This(), callback: ButtonChangeCallback) void {
+            self.button_change_callback = callback;
         }
     };
 }
