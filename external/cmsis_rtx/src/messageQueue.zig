@@ -11,14 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-const c_rtx = @import("c.zig").c_rtx;
+const c = @import("c.zig").c;
 const core = @import("core.zig");
 
 pub const osError = core.osError;
 const osErrorMap = core.osErrorMap;
 
-pub const osMessageQueueAttr_t = c_rtx.osMessageQueueAttr_t;
-pub const osMessageQueueId_t = c_rtx.osMessageQueueId_t;
+pub const osMessageQueueAttr_t = c.osMessageQueueAttr_t;
+pub const osMessageQueueId_t = c.osMessageQueueId_t;
 
 fn messageQueueMemSize(comptime msg_count: usize, comptime msg_size: usize) usize {
     return @intCast((4 * @as(u32, @intCast(msg_count))) * (3 + ((@as(u32, @intCast(msg_size)) + 3) / 4)));
@@ -32,6 +32,12 @@ pub fn MessageQueue(comptime T: type) type {
     return struct {
         id: osMessageQueueId_t = undefined,
 
+        pub fn default() @This() {
+            return .{
+                .id = undefined,
+            };
+        }
+
         /// Creates a MessageQueue object using an existing MessageQueueId reference
         pub fn create(id: osMessageQueueId_t) @This() {
             return .{ .id = id };
@@ -39,24 +45,24 @@ pub fn MessageQueue(comptime T: type) type {
 
         /// Creates a new MessageQueue for type T
         pub fn new(self: *@This(), msg_count: u32, attr: ?*const osMessageQueueAttr_t) osError!void {
-            self.id = c_rtx.osMessageQueueNew(msg_count, @sizeOf(T), attr);
+            self.id = c.osMessageQueueNew(msg_count, @sizeOf(T), attr);
 
             if (null == self.id) return osError.osErrorResource;
         }
 
         /// Get message queue name
         pub fn getName(self: *const @This()) ?[*:0]const u8 {
-            return c_rtx.osMessageQueueGetName(self.id);
+            return c.osMessageQueueGetName(self.id);
         }
 
         /// Put a message into the queue
         pub fn put(self: *const @This(), msg: *const T, msg_prio: u8, timeout: ?u32) osError!void {
-            return osErrorMap(c_rtx.osMessageQueuePut(self.id, msg, msg_prio, timeout orelse core.osWaitForever));
+            return osErrorMap(c.osMessageQueuePut(self.id, msg, msg_prio, timeout orelse core.osWaitForever));
         }
 
         /// Get a message from the queue
         inline fn get(self: *const @This(), msg: *T, msg_prio: ?*u8, timeout: u32) osError!void {
-            return osErrorMap(c_rtx.osMessageQueueGet(self.id, msg, msg_prio, timeout));
+            return osErrorMap(c.osMessageQueueGet(self.id, msg, msg_prio, timeout));
         }
 
         /// Get a message from the queue
@@ -75,32 +81,32 @@ pub fn MessageQueue(comptime T: type) type {
 
         /// Get maximum number of messages in the queue
         pub fn getCapacity(self: *const @This()) usize {
-            return @intCast(c_rtx.osMessageQueueGetCapacity(self.id));
+            return @intCast(c.osMessageQueueGetCapacity(self.id));
         }
 
         /// Get maximum message size in bytes
         pub fn getMsgSize(self: *const @This()) u32 {
-            return c_rtx.osMessageQueueGetMsgSize(self.id);
+            return c.osMessageQueueGetMsgSize(self.id);
         }
 
         /// Get number of queued messages
         pub fn getCount(self: *const @This()) usize {
-            return @intCast(c_rtx.osMessageQueueGetCount(self.id));
+            return @intCast(c.osMessageQueueGetCount(self.id));
         }
 
         /// Get number of available slots for messages
         pub fn getSpace(self: *const @This()) usize {
-            return @intCast(c_rtx.osMessageQueueGetSpace(self.id));
+            return @intCast(c.osMessageQueueGetSpace(self.id));
         }
 
         /// Reset the message queue to initial empty state
         pub fn reset(self: *const @This()) osError!void {
-            return osErrorMap(c_rtx.osMessageQueueReset(self.id));
+            return osErrorMap(c.osMessageQueueReset(self.id));
         }
 
         /// Delete the message queue
         pub fn delete(self: *const @This()) osError!void {
-            return osErrorMap(c_rtx.osMessageQueueDelete(self.id));
+            return osErrorMap(c.osMessageQueueDelete(self.id));
         }
     };
 }
@@ -111,19 +117,27 @@ pub fn StaticMessageQueue(comptime T: type, comptime msg_count: usize, comptime 
         mq: MessageQueue(T) = undefined,
 
         /// Control Block, 32-Bit alignment needed
-        cb: c_rtx.osRtxMessageQueue_t align(4) = undefined,
+        cb: c.osRtxMessageQueue_t align(4) = undefined,
 
         /// Static message storage, 32-Bit alignment needed
         storage: [messageQueueMemSize(msg_count, @sizeOf(T))]u8 align(4) = undefined,
 
+        pub fn default() @This() {
+            return .{
+                .mq = MessageQueue(T).default(),
+                .cb = undefined,
+                .storage = undefined,
+            };
+        }
+
         /// Create new static message queue
         pub fn new(self: *@This(), attr_bits: u32) osError!void {
             // MessageQueue attributes
-            const attr: c_rtx.osMessageQueueAttr_t = .{
+            const attr: c.osMessageQueueAttr_t = .{
                 .name = name,
                 .attr_bits = attr_bits,
                 .cb_mem = &self.cb,
-                .cb_size = c_rtx.osRtxMessageQueueCbSize,
+                .cb_size = c.osRtxMessageQueueCbSize,
                 .mq_mem = self.storage[0..].ptr,
                 .mq_size = self.storage.len,
             };

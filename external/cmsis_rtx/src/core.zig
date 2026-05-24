@@ -11,73 +11,90 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pub const c_rtx = @import("c.zig").c_rtx;
+pub const c = @import("c.zig").c;
 
 // Error type for OS errors
-pub const osError = error{ osError, osErrorTimeout, osErrorResource, osErrorParameter, osErrorNoMemory, osErrorISR, osErrorSafetyClass, osRtxErrorStackOverflow, osRtxErrorISRQueueOverflow, osRtxErrorTimerQueueOverflow, osRtxErrorClibSpace, osRtxErrorClibMutex, osRtxErrorSVC };
+pub const osError = error{
+    osError,
+    osErrorTimeout,
+    osErrorResource,
+    osErrorParameter,
+    osErrorNoMemory,
+    osErrorISR,
+    osErrorSafetyClass,
+    osRtxErrorStackOverflow,
+    osRtxErrorISRQueueOverflow,
+    osRtxErrorTimerQueueOverflow,
+    osRtxErrorClibSpace,
+    osRtxErrorClibMutex,
+    osRtxErrorSVC,
 
-// Error type for OS flags
-pub const osFlagsError = error{
-    osFlagsErrorUnknown,
-    osFlagsErrorTimeout,
-    osFlagsErrorResource,
-    osFlagsErrorParameter,
-    osFlagsErrorISR,
-    osFlagsErrorSafetyClass,
+    osErrorUnknown,
 };
 
+pub const osTick = u32;
+
 // All basic types that multiple modules need
-pub const osStatus_t = c_rtx.osStatus_t;
-pub const osThreadId_t = c_rtx.osThreadId_t;
-pub const osTimerId_t = c_rtx.osTimerId_t;
-pub const osEventFlagsId_t = c_rtx.osEventFlagsId_t;
-pub const osSemaphoreId_t = c_rtx.osSemaphoreId_t;
-pub const osMutexId_t = c_rtx.osMutexId_t;
-pub const osMessageQueueId_t = c_rtx.osMessageQueueId_t;
+pub const osStatus_t = c.osStatus_t;
+pub const osThreadId_t = c.osThreadId_t;
+pub const osTimerId_t = c.osTimerId_t;
+pub const osEventFlagsId_t = c.osEventFlagsId_t;
+pub const osSemaphoreId_t = c.osSemaphoreId_t;
+pub const osMutexId_t = c.osMutexId_t;
+pub const osMessageQueueId_t = c.osMessageQueueId_t;
 
 // Wait forever
-pub const osWaitForever: u32 = @intCast(c_rtx.osWaitForever);
+pub const osWaitForever: osTick = @intCast(c.osWaitForever);
+pub const osWaitNever: osTick = 0;
 
 // Flag options
 pub const osFlagsOptions = enum(u32) {
-    osFlagsWaitAny = c_rtx.osFlagsWaitAny,
-    osFlagsWaitAll = c_rtx.osFlagsWaitAll,
-    osFlagsNoClear = c_rtx.osFlagsNoClear,
+    osFlagsWaitAny = c.osFlagsWaitAny,
+    osFlagsWaitAll = c.osFlagsWaitAll,
+    osFlagsNoClear = c.osFlagsNoClear,
 };
 
 // Map `osStatus` codes to zig errors
-pub fn osErrorMap(osStatus: osStatus_t) osError!void {
+pub inline fn osErrorMap(osStatus: osStatus_t) osError!void {
     return switch (osStatus) {
-        c_rtx.osOK => {},
-        c_rtx.osError => osError.osError,
-        c_rtx.osErrorISR => osError.osErrorISR,
-        c_rtx.osErrorTimeout => osError.osErrorTimeout,
-        c_rtx.osErrorResource => osError.osErrorResource,
-        c_rtx.osErrorParameter => osError.osErrorParameter,
-        c_rtx.osErrorNoMemory => osError.osErrorNoMemory,
-        c_rtx.osErrorSafetyClass => osError.osErrorSafetyClass,
+        c.osOK => {},
 
-        c_rtx.osRtxErrorStackOverflow => osError.osRtxErrorStackOverflow,
-        c_rtx.osRtxErrorISRQueueOverflow => osError.osRtxErrorISRQueueOverflow,
-        c_rtx.osRtxErrorTimerQueueOverflow => osError.osRtxErrorTimerQueueOverflow,
-        c_rtx.osRtxErrorClibSpace => osError.osRtxErrorClibSpace,
-        c_rtx.osRtxErrorClibMutex => osError.osRtxErrorClibMutex,
-        c_rtx.osRtxErrorSVC => osError.osRtxErrorSVC,
-        else => osError.osError,
+        c.osError => osError.osError,
+        c.osErrorISR => osError.osErrorISR,
+        c.osErrorTimeout => osError.osErrorTimeout,
+        c.osErrorResource => osError.osErrorResource,
+        c.osErrorParameter => osError.osErrorParameter,
+        c.osErrorNoMemory => osError.osErrorNoMemory,
+        c.osErrorSafetyClass => osError.osErrorSafetyClass,
+
+        c.osRtxErrorStackOverflow => osError.osRtxErrorStackOverflow,
+        c.osRtxErrorISRQueueOverflow => osError.osRtxErrorISRQueueOverflow,
+        c.osRtxErrorTimerQueueOverflow => osError.osRtxErrorTimerQueueOverflow,
+        c.osRtxErrorClibSpace => osError.osRtxErrorClibSpace,
+        c.osRtxErrorClibMutex => osError.osRtxErrorClibMutex,
+        c.osRtxErrorSVC => osError.osRtxErrorSVC,
+
+        else => osError.osErrorUnknown,
     };
 }
 
+pub inline fn osErrorMapAsError(osStatus: osStatus_t) osError {
+    osErrorMap(osStatus) catch |err| return err;
+
+    unreachable;
+}
+
 // Map return codes into errors
-pub fn osFlagsErrorMap(ef: u32) osFlagsError!u32 {
-    if (@as(u32, @intCast(c_rtx.osFlagsError & ef)) == @as(u32, @intCast(c_rtx.osFlagsError))) {
+pub fn osFlagsErrorMap(ef: u32) osError!u32 {
+    if (@as(u32, @intCast(c.osFlagsError & ef)) == @as(u32, @intCast(c.osFlagsError))) {
         return switch (ef) {
-            c_rtx.osFlagsErrorUnknown => osFlagsError.osFlagsErrorUnknown,
-            c_rtx.osFlagsErrorTimeout => osFlagsError.osFlagsErrorTimeout,
-            c_rtx.osFlagsErrorResource => osFlagsError.osFlagsErrorResource,
-            c_rtx.osFlagsErrorParameter => osFlagsError.osFlagsErrorParameter,
-            c_rtx.osFlagsErrorISR => osFlagsError.osFlagsErrorISR,
-            c_rtx.osFlagsErrorSafetyClass => osFlagsError.osFlagsErrorSafetyClass,
-            else => osFlagsError.osFlagsErrorUnknown,
+            c.osFlagsErrorUnknown => osError.osErrorUnknown,
+            c.osFlagsErrorTimeout => osError.osErrorTimeout,
+            c.osFlagsErrorResource => osError.osErrorResource,
+            c.osFlagsErrorParameter => osError.osErrorParameter,
+            c.osFlagsErrorISR => osError.osErrorISR,
+            c.osFlagsErrorSafetyClass => osError.osErrorSafetyClass,
+            else => osError.osErrorUnknown,
         };
     } else {
         return ef;

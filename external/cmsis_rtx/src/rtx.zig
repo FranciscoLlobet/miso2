@@ -13,7 +13,7 @@
 // limitations under the License.
 const std = @import("std");
 const core = @import("core.zig");
-const c_rtx = core.c_rtx;
+const c = core.c;
 
 pub const kernel = @import("kernel.zig");
 pub const delay = @import("delay.zig");
@@ -23,6 +23,8 @@ pub const timer = @import("timer.zig");
 pub const mutex = @import("mutex.zig");
 pub const semaphore = @import("semaphore.zig");
 
+pub const jobQueue = @import("jobQueue.zig");
+
 pub const StaticThread = thread.StaticThread;
 pub const StaticTimer = timer.StaticTimer;
 pub const StaticMutex = mutex.StaticMutex;
@@ -30,11 +32,16 @@ pub const StaticSemaphore = semaphore.StaticSemaphore;
 pub const MessageQueue = @import("messageQueue.zig").MessageQueue;
 pub const StaticMessageQueue = @import("messageQueue.zig").StaticMessageQueue;
 
+pub const JobMsg = jobQueue.JobMsg;
+pub const JobQueue = jobQueue.JobQueue;
+
 pub const osError = core.osError;
 pub const osFlagsError = core.osFlagsError;
-pub const osWaitForever: u32 = @intCast(c_rtx.osWaitForever);
 
 pub const Kernel = kernel.Kernel;
 
 pub const osDelay = delay.osDelay;
 pub const osDelayUntil = delay.osDelayUntil;
+
+pub const osWaitForever = core.osWaitForever;
+pub const osWaitNever = core.osWaitNever;

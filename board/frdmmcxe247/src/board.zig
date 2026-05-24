@@ -4,16 +4,21 @@ const c = @import("c.zig").c;
 const uart = @import("uart.zig");
 const led = @import("led.zig");
 const button = @import("button.zig");
+const runtime = @import("runtime.zig");
 
-pub fn initialize() void {
+pub fn initPreKernel() void {
     c.BOARD_InitBootPins();
     c.BOARD_InitBootClocks();
     c.BOARD_InitBootPeripherals();
     c.BOARD_InitLEDsPins();
     c.BOARD_InitBUTTONsPins();
+}
 
-    button_sw2.init(null) catch {};
-    button_sw3.init(null) catch {};
+pub fn initialize() void {
+    button_sw2.init(null) catch unreachable;
+    button_sw3.init(null) catch unreachable;
+
+    runtime.hwJobQueue.initialize() catch unreachable;
 }
 
 export fn LPUART2_IRQHandler() callconv(.c) void {
@@ -60,26 +65,18 @@ pub var led_blue: led.Led(
     false,
 ) = undefined;
 
-pub var button_sw2: button.Button(
+pub var button_sw2 = button.Button(
     "SW2",
     .sw2,
     c.BOARD_INITBUTTONSPINS_SW2_GPIO,
     c.BOARD_INITBUTTONSPINS_SW2_PIN,
     false,
-) = .{
-    .state = false,
-    .debounce_timer = undefined,
-    .button_change_callback = null,
-};
+).default();
 
-pub var button_sw3: button.Button(
+pub var button_sw3 = button.Button(
     "SW3",
     .sw3,
     c.BOARD_INITBUTTONSPINS_SW3_GPIO,
     c.BOARD_INITBUTTONSPINS_SW3_PIN,
     false,
-) = .{
-    .state = false,
-    .button_change_callback = null,
-    .debounce_timer = undefined,
-};
+).default();

@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 const core = @import("core.zig");
-const c_rtx = core.c_rtx;
+const c = core.c;
 
 pub const osError = core.osError;
 const osErrorMap = core.osErrorMap;
 
 // Execute an osDelay
 pub fn osDelay(ticks: u32) osError!void {
-    return osErrorMap(c_rtx.osDelay(ticks));
+    return osErrorMap(c.osDelay(ticks));
 }
 
 // Execute an osDelay until
 pub fn osDelayUntil(ticks: u32) osError!void {
-    return osErrorMap(c_rtx.osDelayUntil(ticks));
+    return osErrorMap(c.osDelayUntil(ticks));
 }

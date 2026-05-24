@@ -12,19 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 const core = @import("core.zig");
-const c_rtx = core.c_rtx;
+const c = core.c;
 
 pub const osError = core.osError;
 const osErrorMap = core.osErrorMap;
 
-pub const osTimerFunc_t = c_rtx.osTimerFunc_t;
-pub const osTimerAttr_t = c_rtx.osTimerAttr_t;
-pub const osTimerId_t = c_rtx.osTimerId_t;
-pub const osRtxTimer_t = c_rtx.osRtxTimer_t;
+pub const osTimerFunc_t = c.osTimerFunc_t;
+pub const osTimerAttr_t = c.osTimerAttr_t;
+pub const osTimerId_t = c.osTimerId_t;
+pub const osRtxTimer_t = c.osRtxTimer_t;
 
 pub const osTimerType = enum(u32) {
-    osTimerOnce = c_rtx.osTimerOnce,
-    osTimerPeriodic = c_rtx.osTimerPeriodic,
+    osTimerOnce = c.osTimerOnce,
+    osTimerPeriodic = c.osTimerPeriodic,
 };
 
 const timer = @This();
@@ -38,32 +38,32 @@ pub fn create(id: osTimerId_t) @This() {
 
 /// Creates a new Timer
 pub fn new(func: osTimerFunc_t, timer_type: osTimerType, argument: ?*anyopaque, attr: ?*const osTimerAttr_t) @This() {
-    return @This().create(c_rtx.osTimerNew(func, @intFromEnum(timer_type), argument, attr));
+    return @This().create(c.osTimerNew(func, @intFromEnum(timer_type), argument, attr));
 }
 
 /// Get timer name
 pub fn getName(self: *const @This()) ?[*:0]const u8 {
-    return c_rtx.osTimerGetName(self.id);
+    return c.osTimerGetName(self.id);
 }
 
 /// Start or restart the timer
 pub fn start(self: *const @This(), ticks: u32) osError!void {
-    return osErrorMap(c_rtx.osTimerStart(self.id, ticks));
+    return osErrorMap(c.osTimerStart(self.id, ticks));
 }
 
 /// Stop the timer
 pub fn stop(self: *const @This()) osError!void {
-    return osErrorMap(c_rtx.osTimerStop(self.id));
+    return osErrorMap(c.osTimerStop(self.id));
 }
 
 /// Check if timer is running
 pub fn isRunning(self: *const @This()) bool {
-    return c_rtx.osTimerIsRunning(self.id) != 0;
+    return c.osTimerIsRunning(self.id) != 0;
 }
 
 /// Delete the timer
 pub fn delete(self: *const @This()) osError!void {
-    return osErrorMap(c_rtx.osTimerDelete(self.id));
+    return osErrorMap(c.osTimerDelete(self.id));
 }
 
 /// Static timer with compile-time control block allocation

@@ -12,57 +12,61 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 const core = @import("core.zig");
-const c_rtx = core.c_rtx;
+const c = core.c;
 
 pub const osError = core.osError;
 
 const osErrorMap = core.osErrorMap;
 
-pub const ErrorNotifyFn = *const fn (code: osError!void, object_id: ?*anyopaque) u32;
-
-pub const IdleThreadFn = *const fn (in: ?*anyopaque) noreturn;
-
 /// Kernel states
 pub const osKernelState = enum(i32) {
-    osKernelInactive = c_rtx.osKernelInactive,
-    osKernelReady = c_rtx.osKernelReady,
-    osKernelRunning = c_rtx.osKernelRunning,
-    osKernelLocked = c_rtx.osKernelLocked,
-    osKernelSuspended = c_rtx.osKernelSuspended,
-    osKernelError = c_rtx.osKernelError,
+    osKernelInactive = c.osKernelInactive,
+    osKernelReady = c.osKernelReady,
+    osKernelRunning = c.osKernelRunning,
+    osKernelLocked = c.osKernelLocked,
+    osKernelSuspended = c.osKernelSuspended,
+    osKernelError = c.osKernelError,
 };
 
 // Kernel instance
 pub fn Kernel(
-    comptime IdleThread: IdleThreadFn,
-    comptime ErrorNotify: ErrorNotifyFn,
+    comptime IdleThread: *const fn (in: ?*anyopaque) noreturn,
+    comptime ErrorNotify: *const fn (code: osError, object_id: ?*anyopaque) noreturn,
 ) type {
     return struct {
         /// Initialize RTX kernel
-        pub fn initialize(self: @This()) osError!void {
-            _ = self;
-            return osErrorMap(c_rtx.osKernelInitialize());
+        pub fn initialize(_: *@This()) osError!void {
+            return osErrorMap(c.osKernelInitialize());
         }
         /// Start the RTX kernel
-        pub fn start(self: @This()) osError!void {
-            _ = self;
-            return osErrorMap(c_rtx.osKernelStart());
+        pub fn start(_: *@This()) osError!void {
+            return osErrorMap(c.osKernelStart());
         }
         /// Get Kernel tick count
-        pub fn getTickCount() u32 {
-            return c_rtx.osKernelGetTickCount();
+        pub fn getTickCount(_: *@This()) u32 {
+            return c.osKernelGetTickCount();
         }
 
-        pub fn getSysTimerFreq() u32 {
-            return c_rtx.osKernelGetSysTimerFreq();
+        pub fn getSysTimerFreq(_: *@This()) u32 {
+            return c.osKernelGetSysTimerFreq();
         }
 
-        pub fn getState() osKernelState {
-            return @enumFromInt(c_rtx.osKernelGetState());
+        pub fn getState(_: *@This()) osKernelState {
+            return @enumFromInt(c.osKernelGetState());
+        }
+
+        pub fn kernelSuspend(_: *@This()) u32 {
+            return c.osKernelSuspend();
+        }
+
+        pub fn kernelResume(_: *@This(), ticks: u32) void {
+            return c.osKernelResume(ticks);
         }
 
         export fn osRtxErrorNotify(code: u32, object_id: ?*anyopaque) callconv(.c) u32 {
-            return ErrorNotify(osErrorMap(@intCast(code)), object_id);
+            ErrorNotify(core.osErrorMapAsError(@intCast(code)), object_id);
+
+            return 0;
         }
 
         export fn osRtxIdleThread(in: ?*anyopaque) callconv(.c) noreturn {
