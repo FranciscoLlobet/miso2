@@ -16,3 +16,6 @@
 [submodule "external/mcuxsdk-core/mcuxsdk-core"]
 	path = external/mcuxsdk-core/mcuxsdk-core
 	url = https://github.com/FranciscoLlobet/mcuxsdk-core.git
+[submodule "external/mcux-component/mcux-component"]
+	path = external/mcux-component/mcux-component
+	url = git@github.com:FranciscoLlobet/mcux-component.git

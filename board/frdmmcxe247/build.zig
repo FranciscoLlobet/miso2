@@ -54,6 +54,10 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    const mcux_component = b.dependency("mcux_component", .{
+        .target = target,
+        .optimize = optimize,
+    });
     const cmsis_rtx_dep = b.dependency("cmsis_rtx", .{
         .target = target,
         .optimize = optimize,
@@ -81,6 +85,7 @@ pub fn build(b: *std.Build) void {
     board.addIncludePath(mcuxsdk_core.artifact("mcuxsdk-core").getEmittedIncludeTree().path(b, "mcuxsdk-core/include"));
     board.addIncludePath(mcux_devices_mcx.artifact("mcux-devices-mcx").getEmittedIncludeTree().path(b, "mcux-devices-mcx/include"));
     board.addIncludePath(cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/core/include"));
+    board.addIncludePath(mcux_component.artifact("mcux-component").getEmittedIncludeTree().path(b, "mcux-component/include"));
 
     // Create a static library for C board support files
     // This library contains only C code and assembly, no Zig root module
@@ -121,10 +126,12 @@ pub fn build(b: *std.Build) void {
     lib.root_module.addIncludePath(mcuxsdk_core.artifact("mcuxsdk-core").getEmittedIncludeTree().path(b, "mcuxsdk-core/include"));
     lib.root_module.addIncludePath(mcux_devices_mcx.artifact("mcux-devices-mcx").getEmittedIncludeTree().path(b, "mcux-devices-mcx/include"));
     lib.root_module.addIncludePath(cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/core/include"));
+    lib.root_module.addIncludePath(mcux_component.artifact("mcux-component").getEmittedIncludeTree().path(b, "mcux-component/include"));
 
     // Link device-specific libraries (contains fsl_clock.c and device drivers)
     lib.root_module.linkLibrary(mcux_devices_mcx.artifact("mcux-devices-mcx"));
     lib.root_module.linkLibrary(mcuxsdk_core.artifact("mcuxsdk-core"));
+    lib.root_module.linkLibrary(mcux_component.artifact("mcux-component"));
 
     // Inject board RTX config and NXP device headers into cmsis_rtx
     cmsis_rtx_lib.root_module.addCMacro("CPU_MCXE247VLQ", "1");
