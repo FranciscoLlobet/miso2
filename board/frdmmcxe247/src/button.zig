@@ -16,6 +16,7 @@ pub fn Button(
     comptime gpio: *GPIO_Type,
     comptime pin: u32,
     comptime polarity: bool,
+    comptime debounce_ticks: u32,
 ) type {
     return struct {
         state: bool,
@@ -28,7 +29,7 @@ pub fn Button(
             return .{
                 .isr_state = false,
                 .stability_count = 0,
-                .state = undefined,
+                .state = false,
                 .button_change_callback = null,
                 .debounce_timer = undefined,
             };
@@ -38,33 +39,34 @@ pub fn Button(
             return (@intFromBool(polarity) == c.GPIO_PinRead(gpio, pin));
         }
 
-        fn timerCallback(self: ?*@This()) void {
-            // disable irq ?
-            const s = self.?;
-
+        fn timerCallback(self: *@This()) void {
             const new_value = readPin();
-            const old_value = @atomicLoad(bool, &s.isr_state, .seq_cst);
+            const old_value = @atomicLoad(
+                bool,
+                &self.isr_state,
+                .seq_cst,
+            );
 
             if (new_value == old_value) {
                 @atomicStore(
-                    @TypeOf(s.state),
-                    &s.state,
+                    @TypeOf(self.state),
+                    &self.state,
                     new_value,
                     .seq_cst,
                 );
 
-                if (s.button_change_callback) |callback| {
-                    callback(id, s.state);
+                if (self.button_change_callback) |callback| {
+                    callback(id, self.state);
                 }
             } else {
                 @atomicStore(
-                    @TypeOf(s.isr_state),
-                    &s.isr_state,
+                    @TypeOf(self.isr_state),
+                    &self.isr_state,
                     new_value,
                     .seq_cst,
                 );
 
-                s.debounce_timer.start(20) catch unreachable;
+                self.debounce_timer.start(debounce_ticks) catch unreachable;
             }
         }
 
@@ -82,7 +84,7 @@ pub fn Button(
         }
 
         fn timerJob(self: *@This()) callconv(.c) void {
-            self.debounce_timer.start(20) catch unreachable;
+            self.debounce_timer.start(debounce_ticks) catch unreachable;
         }
 
         pub fn handleIsr(self: *@This()) void {

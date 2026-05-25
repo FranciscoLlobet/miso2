@@ -67,7 +67,7 @@ pub fn delete(self: *const @This()) osError!void {
 }
 
 /// Static timer with compile-time control block allocation
-pub fn StaticTimer(comptime T: type, comptime name: [*:0]const u8, comptime timerCallbackFn: *const fn (?*T) void) type {
+pub fn StaticTimer(comptime T: type, comptime name: [*:0]const u8, comptime timerCallbackFn: *const fn (*T) void) type {
     return struct {
         /// Timer object
         tim: timer = undefined,
@@ -76,11 +76,11 @@ pub fn StaticTimer(comptime T: type, comptime name: [*:0]const u8, comptime time
         cb: osRtxTimer_t align(4) = undefined,
 
         fn callback(arg: ?*anyopaque) callconv(.c) void {
-            timerCallbackFn(@as(?*T, @ptrCast(@alignCast(arg))));
+            timerCallbackFn(@ptrCast(@alignCast(arg)));
         }
 
         /// Create new static timer
-        pub fn new(self: *@This(), timer_type: osTimerType, arg: ?*T, attr_bits: u32) osError!void {
+        pub fn new(self: *@This(), timer_type: osTimerType, arg: *T, attr_bits: u32) osError!void {
             // Timer attributes
             const attr: osTimerAttr_t = .{
                 .name = name,

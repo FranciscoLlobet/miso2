@@ -2,12 +2,12 @@ const c = @import("c.zig").c;
 
 const rtx = @import("cmsis_rtx");
 
-const mcuc_sdk_error_map = error{
+const mcux_sdk_error_map = error{
     lpuart_error,
 };
 
-inline fn lpuart_map_error(ret: c.status_t) mcuc_sdk_error_map!void {
-    return if (@as(c.status_t, @intCast(c.kStatus_Success)) != ret) mcuc_sdk_error_map.lpuart_error;
+inline fn lpuart_map_error(ret: c.status_t) mcux_sdk_error_map!void {
+    return if (@as(c.status_t, @intCast(c.kStatus_Success)) != ret) mcux_sdk_error_map.lpuart_error;
 }
 
 const UART_EVENT_FLAG_ERROR: u32 = 0x1;
@@ -17,7 +17,7 @@ const UART_EVENT_FLAG_MASK: u32 = 0xFF;
 
 const UART_LPUART_TX_IDLE: c.status_t = @intCast(c.kStatus_LPUART_TxIdle);
 
-const error_handler_fn = *fn (err: mcuc_sdk_error_map) void;
+const error_handler_fn = *fn (err: mcux_sdk_error_map) void;
 
 pub fn uart_if(
     comptime name: []const u8,
@@ -25,11 +25,19 @@ pub fn uart_if(
     comptime error_handler: ?error_handler_fn,
 ) type {
     return struct {
-        handle: c.lpuart_handle_t = undefined,
+        handle: c.lpuart_handle_t,
 
         tx_flags: rtx.eventFlags.StaticEventFlags(name ++ "_ef"),
 
         tx_mutex: rtx.StaticMutex(name ++ "_mtx"),
+
+        pub fn default() @This() {
+            return .{
+                .handle = undefined,
+                .tx_flags = undefined,
+                .tx_mutex = undefined,
+            };
+        }
 
         pub fn initialize(self: *@This()) !void {
             try self.tx_flags.new(0);
@@ -53,7 +61,7 @@ pub fn uart_if(
 
             const self: *@This() = @ptrCast(@alignCast(user_data));
 
-            if (status == UART_LPUART_TX_IDLE) {
+            if (UART_LPUART_TX_IDLE == status) {
                 ef |= UART_EVENT_FLAG_TX_COMPLETE;
             }
 

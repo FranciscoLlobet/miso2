@@ -13,7 +13,6 @@
 // limitations under the License.
 const core = @import("core.zig");
 const c = core.c;
-const messageQueue = @import("messageQueue.zig");
 
 pub const osError = core.osError;
 
@@ -76,23 +75,23 @@ pub fn Kernel(
     };
 }
 
-pub const osTimerFunc_t = c.osTimerFunc_t;
-
 /// Access to RTX internals not exposed by the public CMSIS-RTOS2 API.
+/// Implemented outside of the Kernel object
 pub const Hacks = struct {
     pub fn osKernelTimer(T: type) type {
         return struct {
             pub fn send(func: *const fn (arg: *T) callconv(.c) void, arg: *T) osError!void {
-                const mq = messageQueue.MessageQueue(c.osRtxTimerFinfo_t).create(
-                    @ptrCast(c.osRtxInfo.timer.mq),
-                );
-
                 const finfo: c.osRtxTimerFinfo_t = .{
                     .func = @ptrCast(func),
                     .arg = @ptrCast(arg),
                 };
 
-                try mq.put(&finfo, 0, core.osWaitNever);
+                return osErrorMap(c.osMessageQueuePut(
+                    @ptrCast(c.osRtxInfo.timer.mq),
+                    &finfo,
+                    0,
+                    core.osWaitNever,
+                ));
             }
         };
     }
