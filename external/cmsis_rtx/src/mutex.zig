@@ -11,27 +11,27 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-const c_rtx = @import("c.zig").c_rtx;
+const c = @import("c.zig").c;
 const core = @import("core.zig");
 
 pub const osError = core.osError;
 const osErrorMap = core.osErrorMap;
 pub const osThreadId_t = core.osThreadId_t;
 
-pub const osMutexAttr_t = c_rtx.osMutexAttr_t;
-pub const osMutexId_t = c_rtx.osMutexId_t;
+pub const osMutexAttr_t = c.osMutexAttr_t;
+pub const osMutexId_t = c.osMutexId_t;
 
-const osMutexNew = c_rtx.osMutexNew;
-const osMutexGetName = c_rtx.osMutexGetName;
-const osMutexAcquire = c_rtx.osMutexAcquire;
-const osMutexRelease = c_rtx.osMutexRelease;
-const osMutexGetOwner = c_rtx.osMutexGetOwner;
-const osMutexDelete = c_rtx.osMutexDelete;
+const osMutexNew = c.osMutexNew;
+const osMutexGetName = c.osMutexGetName;
+const osMutexAcquire = c.osMutexAcquire;
+const osMutexRelease = c.osMutexRelease;
+const osMutexGetOwner = c.osMutexGetOwner;
+const osMutexDelete = c.osMutexDelete;
 
 /// Mutex attribute bits
-pub const osMutexRecursive = c_rtx.osMutexRecursive;
-pub const osMutexPrioInherit = c_rtx.osMutexPrioInherit;
-pub const osMutexRobust = c_rtx.osMutexRobust;
+pub const osMutexRecursive = c.osMutexRecursive;
+pub const osMutexPrioInherit = c.osMutexPrioInherit;
+pub const osMutexRobust = c.osMutexRobust;
 
 const mutex = @This();
 
@@ -79,16 +79,16 @@ pub fn StaticMutex(comptime name: [*:0]const u8) type {
         mtx: mutex = undefined,
 
         /// Control Block, 32-Bit alignment needed
-        cb: c_rtx.osRtxMutex_t align(4) = undefined,
+        cb: c.osRtxMutex_t align(4) = undefined,
 
         /// Create new static mutex
         pub fn new(self: *@This(), attr_bits: u32) osError!void {
             // Mutex attributes
-            const attr: c_rtx.osMutexAttr_t = .{
+            const attr: c.osMutexAttr_t = .{
                 .name = name,
                 .attr_bits = attr_bits,
                 .cb_mem = &self.cb,
-                .cb_size = @sizeOf(c_rtx.osRtxMutex_t),
+                .cb_size = @sizeOf(c.osRtxMutex_t),
             };
 
             self.mtx = mutex.new(&attr);

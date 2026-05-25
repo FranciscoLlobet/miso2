@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-pub const c_rtx = @cImport({
+pub const c = @cImport({
     // CMSIS OS 2 API
     @cInclude("cmsis_os2.h");
 

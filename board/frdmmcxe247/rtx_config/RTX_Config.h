@@ -12,7 +12,7 @@
 #define RTX_CONFIG_H_
 
 /* Global dynamic memory: 8kB (upstream default: 32768) */
-#define OS_DYNAMIC_MEM_SIZE         8192
+#define OS_DYNAMIC_MEM_SIZE         (16 * 1024)
 
 /* Kernel tick: 1ms (upstream default: 1000 — same) */
 #define OS_TICK_FREQ                1000
@@ -23,9 +23,9 @@
 
 /* Safety features: disabled */
 #define OS_SAFETY_FEATURES          0
-#define OS_SAFETY_CLASS             1
-#define OS_EXECUTION_ZONE           1
-#define OS_THREAD_WATCHDOG          1
+#define OS_SAFETY_CLASS             0
+#define OS_EXECUTION_ZONE           0
+#define OS_THREAD_WATCHDOG          0
 #define OS_OBJ_PTR_CHECK            0
 #define OS_SVC_PTR_CHECK            0
 
@@ -37,20 +37,20 @@
 
 /* Thread configuration */
 #define OS_THREAD_OBJ_MEM           0
-#define OS_THREAD_NUM               1
+#define OS_THREAD_NUM               0
 #define OS_THREAD_DEF_STACK_NUM     0
 #define OS_THREAD_USER_STACK_SIZE   0
 
 /* Default thread stack: 512 bytes (upstream default: 3072) */
-#define OS_STACK_SIZE               512
+#define OS_STACK_SIZE               3072
 /* Idle thread stack: 256 bytes (upstream default: 512) */
-#define OS_IDLE_THREAD_STACK_SIZE   256
+#define OS_IDLE_THREAD_STACK_SIZE   512
 #define OS_IDLE_THREAD_TZ_MOD_ID    0
 #define OS_IDLE_THREAD_CLASS        0
 #define OS_IDLE_THREAD_ZONE         0
 
 #define OS_STACK_CHECK              1
-#define OS_STACK_WATERMARK          0
+#define OS_STACK_WATERMARK          1
 #define OS_PRIVILEGE_MODE           1
 
 /* Timer configuration */

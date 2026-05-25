@@ -1,69 +1,16 @@
 const board = @import("board");
 const rtx = @import("cmsis_rtx");
 
-pub fn JobMsg(comptime T: type) type {
-    return struct {
-        jobFn: *const fn (param: ?*T) void,
-        param: ?*T,
-    };
-}
+const JobQueue = rtx.JobQueue;
+const JobMsg = rtx.JobMsg;
 
-pub fn JobQueue(
-    comptime jobMsgType: type,
-    comptime name: []const u8,
-    comptime stack_size: usize,
-    comptime priority: rtx.thread.osThreadPriority,
-    comptime queue_size: usize,
-) type {
-    return struct {
-        thread: rtx.StaticThread(@This(), stack_size, name ++ "_thread", queueRunner),
-        //
-        queue: rtx.StaticMessageQueue(jobMsgType, queue_size, name ++ "_mq"),
-
-        pub fn initialize(self: *@This()) rtx.osError!void {
-            try self.queue.new(0);
-            try self.thread.new(self, 0, priority);
-        }
-
-        fn queueRunner(self: ?*@This()) void {
-            const jq = self.?;
-
-            while (true) {
-                const job = jq.queue.getMsg(rtx.osWaitForever) catch {
-                    continue;
-                };
-
-                if (job) |j| {
-                    j.msg.jobFn(j.msg.param);
-                }
-            }
-        }
-
-        pub fn send(
-            self: *@This(),
-            jobFn: @FieldType(jobMsgType, "jobFn"),
-            param: @FieldType(jobMsgType, "param"),
-            timeout: ?u32,
-        ) !void {
-            try self.queue.put(
-                &.{
-                    .jobFn = jobFn,
-                    .param = param,
-                },
-                0,
-                timeout,
-            );
-        }
-    };
-}
-
-var jobQueue: JobQueue(
+var jobQueue = JobQueue(
     JobMsg(anyopaque),
     "main executor",
-    512,
+    1024,
     .osPriorityAboveNormal,
     10,
-) = undefined;
+).default();
 
 const mainRunType = struct {
     thread: rtx.StaticThread(@This(), 1024, "main", runner),
@@ -102,35 +49,43 @@ var kernel: rtx.Kernel(
 ) = undefined;
 
 export fn zmain() noreturn {
+    board.initPreKernel();
+
+    kernel.initialize() catch unreachable;
+
     board.initialize();
 
-    kernel.initialize() catch {};
+    main_task.new() catch unreachable;
+    jobQueue.initialize() catch unreachable;
 
-    main_task.new() catch {};
-    jobQueue.initialize() catch {};
-
-    kernel.start() catch {};
+    kernel.start() catch unreachable;
 
     unreachable;
 }
 
-fn errorNotify(code: u32, object_id: ?*anyopaque) u32 {
-    _ = code;
+fn errorNotify(code: rtx.osError, object_id: ?*anyopaque) noreturn {
     _ = object_id;
+    _ = code catch {};
 
     while (true) {
         //
     }
-    return 0;
+    unreachable;
 }
 
 fn idleThread(_: ?*anyopaque) noreturn {
     while (true) {
-        //
+        _ = kernel.kernelSuspend();
+
+        kernel.kernelResume(0);
     }
     unreachable;
 }
 
 export fn _start() linksection(".init") callconv(.naked) void {
     asm volatile ("b Reset_Handler");
+}
+
+export fn malloc(_: usize) callconv(.c) ?*anyopaque {
+    unreachable;
 }
