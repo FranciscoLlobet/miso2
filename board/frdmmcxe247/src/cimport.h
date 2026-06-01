@@ -40,6 +40,7 @@ typedef unsigned int wint_t;
 #undef __picolibc_deprecated
 #define __picolibc_deprecated(m)
 
+#include "stdio.h"
 #include "peripherals.h"
 #include "clock_config.h"
 #include "pin_mux.h"

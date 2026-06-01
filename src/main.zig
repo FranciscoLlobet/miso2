@@ -7,13 +7,13 @@ const JobMsg = rtx.JobMsg;
 var jobQueue = JobQueue(
     JobMsg(anyopaque),
     "main executor",
-    1024,
+    4096,
     .osPriorityAboveNormal,
     10,
 ).default();
 
 const mainRunType = struct {
-    thread: rtx.StaticThread(@This(), 1024, "main", runner),
+    thread: rtx.StaticThread(@This(), 2048, "main", runner),
 
     pub fn new(self: *@This()) rtx.osError!void {
         try self.thread.new(self, 0, .osPriorityNormal);
@@ -23,6 +23,8 @@ const mainRunType = struct {
 
     fn runner(self: ?*@This()) void {
         board.lpuart2.write("...Starting MISO2...\n") catch {};
+
+        _ = board.c.printf("Hello World: %d", @as(i32, 1));
 
         while (true) {
             rtx.osDelay(1000) catch {};
