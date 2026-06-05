@@ -47,6 +47,9 @@
         .mcux_component = .{
             .path = "../../external/mcux-component",
         },
+        .lwip = .{
+            .path = "../../external/lwip",
+        },
         // See `zig fetch --save <url>` for a command-line interface for adding dependencies.
         //.example = .{
         //    // When updating this field to a new URL, be sure to delete the corresponding

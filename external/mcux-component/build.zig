@@ -41,6 +41,7 @@ pub fn build(b: *std.Build) void {
         .files = &.{
             "mcux-component/phy/device/phylan8741/fsl_phylan8741.c",
             "mcux-component/silicon_id/fsl_silicon_id.c",
+            "mcux-component/gpio/fsl_adapter_gpio.c",
         },
         .root = b.path("."),
         .flags = &.{
@@ -79,6 +80,11 @@ pub fn build(b: *std.Build) void {
     );
     lib.installHeadersDirectory(
         b.path("mcux-component/silicon_id/"),
+        "mcux-component/include",
+        .{ .include_extensions = &.{".h"} },
+    );
+    lib.installHeadersDirectory(
+        b.path("mcux-component/gpio/"),
         "mcux-component/include",
         .{ .include_extensions = &.{".h"} },
     );

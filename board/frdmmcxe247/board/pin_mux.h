@@ -269,6 +269,29 @@ void BOARD_InitCANPins(void);
 #define BOARD_INITENET_MII_RMII_CRS_DV_PIN_MASK (1U << 17U)      /*!<@brief PORT pin mask */
                                                                  /* @} */
 
+/*! @name PORTC3 (number 42), PTC3
+  @{ */
+
+/* Symbols to be used with GPIO driver */
+#define BOARD_INITENET_MII_RMII_PHY_RST_GPIO GPIOC               /*!<@brief GPIO peripheral base pointer */
+#define BOARD_INITENET_MII_RMII_PHY_RST_INIT_GPIO_VALUE 1U       /*!<@brief GPIO output initial state */
+#define BOARD_INITENET_MII_RMII_PHY_RST_GPIO_PIN_MASK (1U << 3U) /*!<@brief GPIO pin mask */
+
+/* Symbols to be used with PORT driver */
+#define BOARD_INITENET_MII_RMII_PHY_RST_PORT PORTC               /*!<@brief PORT peripheral base pointer */
+#define BOARD_INITENET_MII_RMII_PHY_RST_PIN 3U                   /*!<@brief PORT pin number */
+#define BOARD_INITENET_MII_RMII_PHY_RST_PIN_MASK (1U << 3U)      /*!<@brief PORT pin mask */
+                                                                 /* @} */
+
+/*! @name PORTD11 (number 48), PTD11
+  @{ */
+
+/* Symbols to be used with PORT driver */
+#define BOARD_INITENET_MII_RMII_TX_CLK_PORT PORTD                /*!<@brief PORT peripheral base pointer */
+#define BOARD_INITENET_MII_RMII_TX_CLK_PIN 11U                   /*!<@brief PORT pin number */
+#define BOARD_INITENET_MII_RMII_TX_CLK_PIN_MASK (1U << 11U)      /*!<@brief PORT pin mask */
+                                                                 /* @} */
+
 /*!
  * @brief Configures pin routing and optionally pin electrical features.
  *
@@ -276,10 +299,12 @@ void BOARD_InitCANPins(void);
 void BOARD_InitENET(void);
 
 #define PORT_DFER_DFE_0_MASK 0x01u      /*!<@brief Digital Filter Enable Mask for item 0. */
+#define PORT_DFER_DFE_11_MASK 0x0800u   /*!<@brief Digital Filter Enable Mask for item 11. */
 #define PORT_DFER_DFE_12_MASK 0x1000u   /*!<@brief Digital Filter Enable Mask for item 12. */
 #define PORT_DFER_DFE_17_MASK 0x020000u /*!<@brief Digital Filter Enable Mask for item 17. */
 #define PORT_DFER_DFE_1_MASK 0x02u      /*!<@brief Digital Filter Enable Mask for item 1. */
 #define PORT_DFER_DFE_2_MASK 0x04u      /*!<@brief Digital Filter Enable Mask for item 2. */
+#define PORT_DFER_DFE_3_MASK 0x08u      /*!<@brief Digital Filter Enable Mask for item 3. */
 #define PORT_DFER_DFE_4_MASK 0x10u      /*!<@brief Digital Filter Enable Mask for item 4. */
 #define PORT_DFER_DFE_7_MASK 0x80u      /*!<@brief Digital Filter Enable Mask for item 7. */
 #define PORT_DFER_DFE_8_MASK 0x0100u    /*!<@brief Digital Filter Enable Mask for item 8. */
@@ -356,13 +381,40 @@ void BOARD_InitENET(void);
 #define BOARD_INITENET_DEINIT_MII_RMII_TXD_0_PIN_MASK (1U << 2U)      /*!<@brief PORT pin mask */
                                                                       /* @} */
 
-/*! @name PORTC17 (number 56), PTC17/FTM1_FLT3/CAN2_TX/LPI2C1_SCLS/MII_RMII_RX_DV/QSPI_B_IO6/ADC0_SE15
+/*! @name PORTC17 (number 56), PTC17
   @{ */
 
 /* Symbols to be used with PORT driver */
 #define BOARD_INITENET_DEINIT_MII_RMII_CRS_DV_PORT PORTC                /*!<@brief PORT peripheral base pointer */
 #define BOARD_INITENET_DEINIT_MII_RMII_CRS_DV_PIN 17U                   /*!<@brief PORT pin number */
 #define BOARD_INITENET_DEINIT_MII_RMII_CRS_DV_PIN_MASK (1U << 17U)      /*!<@brief PORT pin mask */
+                                                                        /* @} */
+
+/*! @name PORTC3 (number 42), PTC3
+  @{ */
+
+/* Symbols to be used with PORT driver */
+#define BOARD_INITENET_DEINIT_MII_RMII_PHY_RST_PORT PORTC               /*!<@brief PORT peripheral base pointer */
+#define BOARD_INITENET_DEINIT_MII_RMII_PHY_RST_PIN 3U                   /*!<@brief PORT pin number */
+#define BOARD_INITENET_DEINIT_MII_RMII_PHY_RST_PIN_MASK (1U << 3U)      /*!<@brief PORT pin mask */
+                                                                        /* @} */
+
+/*! @name PORTC3 (number 42), PTC3
+  @{ */
+
+/* Symbols to be used with PORT driver */
+#define BOARD_INITENET_DEINIT_MII_RMII_PHY_RST_PORT PORTC               /*!<@brief PORT peripheral base pointer */
+#define BOARD_INITENET_DEINIT_MII_RMII_PHY_RST_PIN 3U                   /*!<@brief PORT pin number */
+#define BOARD_INITENET_DEINIT_MII_RMII_PHY_RST_PIN_MASK (1U << 3U)      /*!<@brief PORT pin mask */
+                                                                        /* @} */
+
+/*! @name PORTD11 (number 48), PTD11
+  @{ */
+
+/* Symbols to be used with PORT driver */
+#define BOARD_INITENET_DEINIT_MII_RMII_TX_CLK_PORT PORTD                /*!<@brief PORT peripheral base pointer */
+#define BOARD_INITENET_DEINIT_MII_RMII_TX_CLK_PIN 11U                   /*!<@brief PORT pin number */
+#define BOARD_INITENET_DEINIT_MII_RMII_TX_CLK_PIN_MASK (1U << 11U)      /*!<@brief PORT pin mask */
                                                                         /* @} */
 
 /*!

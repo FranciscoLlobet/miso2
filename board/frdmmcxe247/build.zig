@@ -66,6 +66,13 @@ pub fn build(b: *std.Build) void {
     const cmsis_rtx_lib = cmsis_rtx_dep.artifact("cmsis_rtx");
     const cmsis_rtx_mod = cmsis_rtx_dep.module("cmsis_rtx");
 
+    const lwip_dep = b.dependency("lwip", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const lwip_lib = lwip_dep.artifact("lwip");
+    const lwip_mod = lwip_dep.module("lwip");
+
     // Create a Zig module for board-specific code (Zig only, no C files)
     const board = b.addModule("board", .{
         .root_source_file = b.path("src/board.zig"),
@@ -81,11 +88,13 @@ pub fn build(b: *std.Build) void {
     board.addCMacro("CPU_MCXE247VLQ", "1");
     board.addIncludePath(b.path("src")); // for cimport.h
     board.addIncludePath(b.path("board"));
+    board.addIncludePath(b.path("board/ethernet"));
     board.addIncludePath(b.path("../../external/picolibc/include"));
     board.addIncludePath(mcuxsdk_core.artifact("mcuxsdk-core").getEmittedIncludeTree().path(b, "mcuxsdk-core/include"));
     board.addIncludePath(mcux_devices_mcx.artifact("mcux-devices-mcx").getEmittedIncludeTree().path(b, "mcux-devices-mcx/include"));
     board.addIncludePath(cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/core/include"));
     board.addIncludePath(mcux_component.artifact("mcux-component").getEmittedIncludeTree().path(b, "mcux-component/include"));
+    board.addIncludePath(lwip_lib.getEmittedIncludeTree().path(b, "lwip/include"));
 
     // Create a static library for C board support files
     // This library contains only C code and assembly, no Zig root module
@@ -98,6 +107,10 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
+    // Module-level macro: addAssemblyFile does not inherit per-file C flags,
+    // so the BSS-clear guard must be set at module level to reach the assembler.
+    lib.root_module.addCMacro("__STARTUP_CLEAR_BSS", "1");
+
     // Board startup file
     lib.root_module.addAssemblyFile(b.path("startup/startup_MCXE247.S"));
 
@@ -109,7 +122,12 @@ pub fn build(b: *std.Build) void {
             "board/peripherals.c",
             "board/pin_mux.c",
             "board/system_MCXE247.c",
-            "board/picolibc_stubs.c", // Picolibc runtime stubs
+            "board/picolibc_stubs.c",
+            "board/ethernet/enet_ethernetif.c",
+            "board/ethernet/enet_ethernetif_kinetis.c",
+            "board/ethernet/ethernetif.c",
+            "board/ethernet/ethernetif_mmac.c",
+            "board/ethernet/sys_arch.c",
         },
         .flags = &.{
             "-std=c99",
@@ -127,11 +145,13 @@ pub fn build(b: *std.Build) void {
     lib.root_module.addIncludePath(mcux_devices_mcx.artifact("mcux-devices-mcx").getEmittedIncludeTree().path(b, "mcux-devices-mcx/include"));
     lib.root_module.addIncludePath(cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/core/include"));
     lib.root_module.addIncludePath(mcux_component.artifact("mcux-component").getEmittedIncludeTree().path(b, "mcux-component/include"));
+    lib.root_module.addIncludePath(lwip_lib.getEmittedIncludeTree().path(b, "lwip/include"));
 
     // Link device-specific libraries (contains fsl_clock.c and device drivers)
     lib.root_module.linkLibrary(mcux_devices_mcx.artifact("mcux-devices-mcx"));
     lib.root_module.linkLibrary(mcuxsdk_core.artifact("mcuxsdk-core"));
     lib.root_module.linkLibrary(mcux_component.artifact("mcux-component"));
+    lib.root_module.linkLibrary(lwip_lib);
 
     // Inject board RTX config and NXP device headers into cmsis_rtx
     cmsis_rtx_lib.root_module.addCMacro("CPU_MCXE247VLQ", "1");
@@ -152,6 +172,7 @@ pub fn build(b: *std.Build) void {
     // Expose the configured cmsis_rtx module directly to consumers of this package.
     // b.modules is the authoritative map that b.dependency().module() reads from.
     b.modules.put(b.allocator, b.dupe("cmsis_rtx"), cmsis_rtx_mod) catch @panic("OOM");
+    b.modules.put(b.allocator, b.dupe("lwip"), lwip_mod) catch @panic("OOM");
 
     b.installArtifact(lib);
 }

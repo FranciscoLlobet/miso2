@@ -45,6 +45,7 @@ board: FRDM-MCXE247
  * Definitions
  ******************************************************************************/
 #define SIM_CHIPCTL_TRACECLK_SEL_CORECLK                  0U  /*!< Debug trace clock select: core clock */
+#define SIM_LPOCLKS_RTCCLKSEL_LPO32K_CLK                  1U  /*!< 32 kHz clock source select: LPO32K clock */
 
 /*******************************************************************************
  * Variables
@@ -53,6 +54,22 @@ board: FRDM-MCXE247
 /*******************************************************************************
  * Code
  ******************************************************************************/
+/*FUNCTION**********************************************************************
+ *
+ * Function Name : CLOCK_CONFIG_SetRtcClock
+ * Description   : Selects RTC clock source.
+ * Param src     : The selected clock source.
+ *
+ *END**************************************************************************/
+static void CLOCK_CONFIG_SetRtcClock(uint8_t src)
+{
+     uint32_t temp;
+     temp = SIM->LPOCLKS;
+     temp &= ~SIM_LPOCLKS_RTCCLKSEL_MASK;
+     temp |= SIM_LPOCLKS_RTCCLKSEL(src);
+     SIM->LPOCLKS = temp;
+}
+
 /*FUNCTION**********************************************************************
  *
  * Function Name : CLOCK_CONFIG_SetTraceClock
@@ -146,19 +163,35 @@ outputs:
 - {id: PCC.PCC_FLEXIO_CLK.outFreq, value: 8 MHz}
 - {id: PCC.PCC_LPUART2_CLK.outFreq, value: 8 MHz}
 - {id: Prediv_system_clock.outFreq, value: 48 MHz}
+- {id: RMIICLK.outFreq, value: 8 MHz}
+- {id: RTC_CLK.outFreq, value: 8 MHz}
 - {id: SIRCDIV2_CLK.outFreq, value: 8 MHz}
 - {id: SIRC_CLK.outFreq, value: 8 MHz}
+- {id: SOSCDIV1_CLK.outFreq, value: 8 MHz}
+- {id: SOSC_CLK.outFreq, value: 8 MHz}
 - {id: System_clock.outFreq, value: 48 MHz}
 - {id: TRACECLKIN.outFreq, value: 48 MHz}
 settings:
 - {id: PCC.PCC_ENET_SEL.sel, value: SCG.FIRCDIV1_CLK}
 - {id: PCC.PCC_FLEXIO_SEL.sel, value: SCG.SIRCDIV2_CLK}
 - {id: PCC.PCC_LPUART2_SEL.sel, value: SCG.SIRCDIV2_CLK}
+- {id: SCG.DIVBUS.scale, value: '1', locked: true}
+- {id: SCG.DIVCORE.scale, value: '1', locked: true}
+- {id: SCG.DIVSLOW.scale, value: '2', locked: true}
 - {id: SCG.FIRCDIV2.scale, value: '1', locked: true}
+- {id: SCG.PREDIV.scale, value: '1', locked: true}
 - {id: SCG.SIRCDIV1.scale, value: '0', locked: true}
 - {id: SCG.SIRCDIV2.scale, value: '1', locked: true}
+- {id: SCG.SOSCDIV1.scale, value: '1', locked: true}
+- {id: SCG.SOSCDIV2.scale, value: '0', locked: true}
+- {id: SCG.SPLL_mul.scale, value: '32', locked: true}
+- {id: SCG_SOSCCFG_OSC_MODE_CFG, value: ModeOscLowPower}
+- {id: SCG_SOSCCSR_SOSCEN_CFG, value: Enabled}
+- {id: SCG_SPLLCSR_SPLLEN_CFG, value: Enabled}
+- {id: SIM.RMIICLKSEL.sel, value: SCG.SOSCDIV1_CLK}
 sources:
 - {id: SCG.SOSC.outFreq, value: 8 MHz, enabled: true}
+- {id: SIM.ENET_RMII_CLK_EXT_IN.outFreq, value: 50 MHz, enabled: true}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
 /* clang-format on */
 
@@ -172,20 +205,38 @@ const scg_sys_clk_config_t g_sysClkConfig_BOARD_BootClockRUN =
         .divCore = kSCG_SysClkDivBy1,             /* Core Clock Divider: divided by 1 */
         .src = kSCG_SysClkSrcFirc,                /* Fast IRC is selected as System Clock Source */
     };
+const scg_sosc_config_t g_scgSysOscConfig_BOARD_BootClockRUN =
+    {
+        .freq = 8000000U,                         /* System Oscillator frequency: 8000000Hz */
+        .enableMode = kSCG_SysOscEnable,          /* Enable System OSC clock */
+        .monitorMode = kSCG_SysOscMonitorDisable, /* Monitor disabled */
+        .div1 = kSCG_AsyncClkDivBy1,              /* System OSC Clock Divider 1: divided by 1 */
+        .div2 = kSCG_AsyncClkDivBy1,              /* System OSC Clock Divider 2: divided by 1 */
+        .workMode = kSCG_SysOscModeOscLowPower,   /* Oscillator low power */
+    };
 const scg_sirc_config_t g_scgSircConfig_BOARD_BootClockRUN =
     {
         .enableMode = kSCG_SircEnable | kSCG_SircEnableInLowPower,/* Enable SIRC clock, Enable SIRC in low power mode */
-        .div1 = kSCG_AsyncClkDisable,             /* Slow IRC Clock Divider 1: Clock output is disabled */
+        .div1 = kSCG_AsyncClkDivBy1,              /* Slow IRC Clock Divider 1: divided by 1 */
         .div2 = kSCG_AsyncClkDivBy1,              /* Slow IRC Clock Divider 2: divided by 1 */
         .range = kSCG_SircRangeHigh,              /* Slow IRC high range clock (8 MHz) */
     };
 const scg_firc_config_t g_scgFircConfig_BOARD_BootClockRUN =
     {
         .enableMode = kSCG_FircEnable,            /* Enable FIRC clock */
-        .div1 = kSCG_AsyncClkDisable,             /* Fast IRC Clock Divider 1: Clock output is disabled */
+        .div1 = kSCG_AsyncClkDivBy1,              /* Fast IRC Clock Divider 1: divided by 1 */
         .div2 = kSCG_AsyncClkDivBy1,              /* Fast IRC Clock Divider 2: divided by 1 */
         .range = kSCG_FircRange48M,               /* Fast IRC is trimmed to 48MHz */
         .trimConfig = NULL,                       /* Disable trim */
+    };
+const scg_spll_config_t g_scgSysPllConfig_BOARD_BootClockRUN =
+    {
+        .enableMode = kSCG_SysPllEnable,          /* Enable SPLL clock */
+        .monitorMode = kSCG_SysPllMonitorDisable, /* Monitor disabled */
+        .div1 = kSCG_AsyncClkDisable,             /* System PLL Clock Divider 1: Clock output is disabled */
+        .div2 = kSCG_AsyncClkDisable,             /* System PLL Clock Divider 2: Clock output is disabled */
+        .prediv = 0,                              /* Divided by 1 */
+        .mult = 16,                               /* Multiply Factor is 32 */
     };
 /*******************************************************************************
  * Code for BOARD_BootClockRUN configuration
@@ -195,6 +246,12 @@ void BOARD_BootClockRUN_InitClockModule(clock_module_t module)
     scg_sys_clk_config_t curConfig;
 
     switch(module) {
+        case kClockModule_SOSC:
+            /* Init SOSC according to board configuration. */
+            CLOCK_InitSysOsc(&g_scgSysOscConfig_BOARD_BootClockRUN);
+            /* Set the XTAL0 frequency based on board settings. */
+            CLOCK_SetXtal0Freq(g_scgSysOscConfig_BOARD_BootClockRUN.freq);
+            break;
         case kClockModule_FIRC:
             /* Init FIRC.*/
             CLOCK_CONFIG_FircSafeConfig(&g_scgFircConfig_BOARD_BootClockRUN);
@@ -205,6 +262,10 @@ void BOARD_BootClockRUN_InitClockModule(clock_module_t module)
         case kClockModule_SIRC:
             /* Init SIRC. */
             CLOCK_InitSirc(&g_scgSircConfig_BOARD_BootClockRUN);
+            break;
+        case kClockModule_SPLL:
+            /* Init SysPll. */
+            CLOCK_InitSysPll(&g_scgSysPllConfig_BOARD_BootClockRUN);
             break;
         case kClockModule_SystemClkSrc:
             /* Set SCG to FIRC mode. */
@@ -227,6 +288,10 @@ void BOARD_BootClockRUN_InitClockModule(clock_module_t module)
             /* Set Debug trace clock. */
             CLOCK_CONFIG_SetTraceClock(SIM_CHIPCTL_TRACECLK_SEL_CORECLK, 0, 0, true);
             break;
+        case kClockModule_RTCClkOut:
+            /* Set RTC clock source. */
+            CLOCK_CONFIG_SetRtcClock(SIM_LPOCLKS_RTCCLKSEL_LPO32K_CLK);
+            break;
         case kClockModule_PCC_LPUART2:
             /* Set PCC LPUART2 selection */
             CLOCK_SetIpSrc(kCLOCK_Lpuart2, kCLOCK_IpSrcSircAsync);
@@ -243,11 +308,13 @@ void BOARD_BootClockRUN_InitClockModule(clock_module_t module)
 
 void BOARD_BootClockRUN(void)
 {
+    BOARD_BootClockRUN_InitClockModule(kClockModule_SOSC);
     BOARD_BootClockRUN_InitClockModule(kClockModule_FIRC);
     BOARD_BootClockRUN_InitClockModule(kClockModule_SIRC);
     BOARD_BootClockRUN_InitClockModule(kClockModule_SystemClkSrc);
     BOARD_BootClockRUN_InitClockModule(kClockModule_SCG_CLKOUTSEL);
     BOARD_BootClockRUN_InitClockModule(kClockModule_TRACEClkOut);
+    BOARD_BootClockRUN_InitClockModule(kClockModule_RTCClkOut);
     BOARD_BootClockRUN_InitClockModule(kClockModule_PCC_FlexIO);
     BOARD_BootClockRUN_InitClockModule(kClockModule_PCC_LPUART2);
     BOARD_BootClockRUN_InitClockModule(kClockModule_LPO);
