@@ -99,12 +99,20 @@ pub fn build(b: *std.Build) void {
     });
 
     // =========================================================================
-    // Minimal API layer (err.c is always needed; full api/ requires NO_SYS=0)
+    // API layer (err.c is always needed; full api/ requires NO_SYS=0)
     // =========================================================================
     lib.root_module.addCSourceFiles(.{
         .root = b.path("lwip/src/api"),
         .files = &.{
+            "api_lib.c",
+            "api_msg.c",
             "err.c",
+            "tcpip.c",
+            "if_api.c",
+            "netifapi.c",
+            "netdb.c",
+            "netbuf.c",
+            "sockets.c",
         },
         .flags = c_flags,
     });

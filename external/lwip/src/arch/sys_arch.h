@@ -46,26 +46,30 @@
 
 #if !NO_SYS
 
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "semphr.h"
+#include <stdint.h>
+//#include "cmsis_os2.h"
+//#include "FreeRTOS.h"
+//#include "task.h"
+//#include "queue.h"
+//#include "semphr.h"
 
 #endif
 
-#define SYS_MBOX_NULL                  ((QueueHandle_t)NULL)
-#define SYS_SEM_NULL                   ((SemaphoreHandle_t)NULL)
-#define SYS_DEFAULT_THREAD_STACK_DEPTH configMINIMAL_STACK_SIZE
-#if !NO_SYS
-typedef SemaphoreHandle_t sys_sem_t;
-typedef SemaphoreHandle_t sys_mutex_t;
-typedef QueueHandle_t sys_mbox_t;
-typedef TaskHandle_t sys_thread_t;
+#define SYS_MBOX_NULL                  ((osMessageQueueId_t)NULL)
+#define SYS_SEM_NULL                   ((osSemaphoreId_t)NULL)
+//#define SYS_DEFAULT_THREAD_STACK_DEPTH configMINIMAL_STACK_SIZE
 
-#define sys_mbox_valid(x)       (((*x) == NULL) ? pdFALSE : pdTRUE)
+#if !NO_SYS
+
+typedef void *     sys_sem_t;
+typedef void *         sys_mutex_t;
+typedef void *  sys_mbox_t;
+typedef void *        sys_thread_t;
+
+#define sys_mbox_valid(x)       (((*x) == NULL) ? 0 : 1)
 #define sys_mbox_set_invalid(x) ((*x) = NULL)
-#define sys_sem_valid(x)        (((*x) == NULL) ? pdFALSE : pdTRUE)
-#define sys_sem_set_invalid(x)  ((*x) = NULL)
+//#define sys_sem_valid(x)        (((*x) == NULL) ? 0 : 1)
+//#define sys_sem_set_invalid(x)  ((*x) = NULL)
 
 void sys_arch_msleep(uint32_t delay_ms);
 #define sys_msleep(ms) sys_arch_msleep(ms)

@@ -23,7 +23,7 @@ pub const osThreadId_t = c.osThreadId_t;
 pub const osThreadFunc_t = c.osThreadFunc_t;
 pub const osThreadAttr_t = c.osThreadAttr_t;
 
-const osThreadNew = c.osThreadNew;
+pub const osThreadNew = c.osThreadNew;
 const osThreadGetState = c.osThreadGetState;
 const osThreadGetId = c.osThreadGetId;
 const osThreadGetStackSize = c.osThreadGetStackSize;

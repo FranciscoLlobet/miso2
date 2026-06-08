@@ -21,12 +21,12 @@ pub const osThreadId_t = core.osThreadId_t;
 pub const osMutexAttr_t = c.osMutexAttr_t;
 pub const osMutexId_t = c.osMutexId_t;
 
-const osMutexNew = c.osMutexNew;
-const osMutexGetName = c.osMutexGetName;
-const osMutexAcquire = c.osMutexAcquire;
-const osMutexRelease = c.osMutexRelease;
-const osMutexGetOwner = c.osMutexGetOwner;
-const osMutexDelete = c.osMutexDelete;
+pub const osMutexNew = c.osMutexNew;
+pub const osMutexGetName = c.osMutexGetName;
+pub const osMutexAcquire = c.osMutexAcquire;
+pub const osMutexRelease = c.osMutexRelease;
+pub const osMutexGetOwner = c.osMutexGetOwner;
+pub const osMutexDelete = c.osMutexDelete;
 
 /// Mutex attribute bits
 pub const osMutexRecursive = c.osMutexRecursive;

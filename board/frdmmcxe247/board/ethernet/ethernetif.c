@@ -60,6 +60,8 @@
 #include "event_groups.h"
 #include "portmacro.h"
 #include "lwip/tcpip.h"
+#elif !NO_SYS
+#include "lwip/tcpip.h"
 #endif
 
 #include "ethernetif.h"

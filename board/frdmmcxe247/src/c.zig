@@ -13,5 +13,6 @@ pub const c = @cImport({
     @cInclude("lwip/dhcp.h");
     @cInclude("lwip/timeouts.h");
     @cInclude("lwip/ip_addr.h");
+    @cInclude("lwip/tcpip.h");
     @cInclude("netif/ethernet.h");
 });

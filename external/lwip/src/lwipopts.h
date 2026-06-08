@@ -27,7 +27,10 @@
 #define MEMMOVE(dst,src,len) memmove(dst,src,len)
 
 extern void sys_check_core_locking(void);
-
+extern void sys_lock_tcpip_core(void);
+extern void sys_unlock_tcpip_core(void);
+extern void sys_check_core_locking(void);
+extern void sys_mark_tcpip_thread(void);
 /* =========================================================================
  * Operating mode
  * =========================================================================
@@ -35,7 +38,7 @@ extern void sys_check_core_locking(void);
  * Callers must drive lwip_timers_check_timeouts() from the main loop.
  * sys_now() must be provided by the application (returns milliseconds).
  */
-#define NO_SYS 1
+#define NO_SYS 0
 
 /* SYS_LIGHTWEIGHT_PROT=0: disable the sys_prot_t / sys_arch_protect()
  * critical-section mechanism.  With NO_SYS=1 and a single-threaded polling
@@ -44,7 +47,6 @@ extern void sys_check_core_locking(void);
 #define SYS_LIGHTWEIGHT_PROT 1
 
 #define LWIP_ASSERT_CORE_LOCKED( ) sys_check_core_locking()
-#define LWIP_RAND   1
 #define LWIP_TIMERS 1
 
 /* =========================================================================
@@ -60,8 +62,8 @@ extern void sys_check_core_locking(void);
  * =========================================================================
  * memp.c unconditionally includes api_msg.h; disabling these suppresses
  * the #error it emits when NO_SYS=1 and LWIP_NETCONN is still enabled. */
-#define LWIP_NETCONN            0
-#define LWIP_SOCKET             0
+#define LWIP_NETCONN            1
+#define LWIP_SOCKET             1
 
 /* =========================================================================
  * Memory pool sizes
@@ -83,7 +85,6 @@ extern void sys_check_core_locking(void);
 #define MEMP_NUM_FRAG_PBUF 15U
 #define MEMP_NUM_ARP_QUEUE 30U
 #define MEMP_NUM_IGMP_GROUP 8U
-#define LWIP_NUM_SYS_TIMEOUT_INTERNAL (LWIP_TCP + IP_REASSEMBLY + LWIP_ARP + (LWIP_DHCP_FINE_TIMERS_ONDEMAND ? LWIP_DHCP : 2*LWIP_DHCP) + LWIP_ACD + (LWIP_IGMP_TIMERS_ONDEMAND ? 0 : LWIP_IGMP) + (LWIP_DNS_TIMERS_ONDEMAND ? 0 : LWIP_DNS) + PPP_NUM_TIMEOUTS + (LWIP_IPV6 * (1 + LWIP_IPV6_REASS + (LWIP_MLD6_TIMERS_ONDEMAND ? 0 : LWIP_IPV6_MLD) + LWIP_IPV6_DHCP6)))
 #define MEMP_NUM_SYS_TIMEOUT 10
 #define MEMP_NUM_NETBUF 2U
 #define MEMP_NUM_NETCONN 4U
@@ -158,6 +159,30 @@ extern void sys_check_core_locking(void);
 #define LWIP_NETIF_LINK_CALLBACK    1
 #define LWIP_SINGLE_NETIF 1
 
+
+#define TCPIP_THREAD_NAME "tcpip_thread"
+#define TCPIP_THREAD_STACKSIZE 1024U
+#define TCPIP_THREAD_PRIO 8
+#define TCPIP_MBOX_SIZE 32U
+#define LWIP_TCPIP_THREAD_ALIVE( ) 
+#define SLIPIF_THREAD_NAME "slipif_loop"
+#define SLIPIF_THREAD_STACKSIZE 0U
+#define SLIPIF_THREAD_PRIO 1
+#define DEFAULT_THREAD_NAME "lwIP"
+#define DEFAULT_THREAD_STACKSIZE 3000U
+#define DEFAULT_THREAD_PRIO 3
+#define DEFAULT_RAW_RECVMBOX_SIZE 12U
+#define DEFAULT_UDP_RECVMBOX_SIZE 12U
+#define DEFAULT_TCP_RECVMBOX_SIZE 12U
+#define DEFAULT_ACCEPTMBOX_SIZE 12U
+
+#define LWIP_NETCONN_SEM_PER_THREAD     0
+
+#define LWIP_TCPIP_CORE_LOCKING 1
+#define LOCK_TCPIP_CORE_CUSTOM( ) sys_lock_tcpip_core()
+#define LOCK_TCPIP_CORE( ) sys_lock_tcpip_core()
+#define UNLOCK_TCPIP_CORE_CUSTOM( ) sys_unlock_tcpip_core()
+#define UNLOCK_TCPIP_CORE( ) sys_unlock_tcpip_core()
 /* =========================================================================
  * Checksums
  * ========================================================================= */
@@ -169,6 +194,9 @@ extern void sys_check_core_locking(void);
 #define CHECKSUM_CHECK_IP       0
 #define CHECKSUM_CHECK_UDP      1
 #define CHECKSUM_CHECK_TCP      1
+
+
+
 
 /* =========================================================================
  * Statistics & debug — off by default, enable per-module during bring-up

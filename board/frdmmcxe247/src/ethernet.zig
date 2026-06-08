@@ -14,9 +14,9 @@ fn Mdio(
         fn mdio_write(phyAddr: u8, regAddr: u8, data: c.u16_t) callconv(.c) c.status_t {
             return c.ENET_MDIOWrite(@constCast(enet), phyAddr, regAddr, data);
         }
-        fn mdio_init() void {
-            c.c.CLOCK_EnableClock(c.s_enetClock[c.ENET_GetInstance(enet)]);
-            c.ENET_SetSMI(enet, c.CLOCK_GetCoreSysClkFreq(), false);
+        pub fn init(_: *const @This()) void {
+            c.CLOCK_EnableClock(c.s_enetClock[c.ENET_GetInstance(@ptrCast(@constCast(enet)))]);
+            c.ENET_SetSMI(@constCast(enet), c.CLOCK_GetCoreSysClkFreq(), false);
         }
         fn default() @This() {
             return .{
@@ -160,6 +160,10 @@ pub fn Netif() type {
 
         pub inline fn is_link_up(self: *@This()) bool {
             return (@as(u8, @intCast(1)) == c.netif_is_link_up(&self.netIf));
+        }
+
+        pub fn get_dhcp_data(self: *@This()) ?*c.dhcp {
+            return c.netif_dhcp_data(&self.netIf);
         }
 
         pub fn getReference(self: *@This()) *c.netif {

@@ -15,6 +15,8 @@
 /* Cortex-M4 is always little-endian */
 #define BYTE_ORDER LITTLE_ENDIAN
 
+#define LWIP_ERR_T  int32_t
+
 /* picolibc provides stdint.h / inttypes.h / limits.h in bare-metal builds */
 /* No POSIX unistd.h or sys/time.h in freestanding mode */
 #define LWIP_NO_UNISTD_H 1

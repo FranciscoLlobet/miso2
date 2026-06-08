@@ -21,6 +21,12 @@ pub const osSemaphoreAttr_t = c.osSemaphoreAttr_t;
 pub const osSemaphoreId_t = c.osSemaphoreId_t;
 pub const osRtxSemaphore_t = c.osRtxSemaphore_t;
 
+pub const osSemaphoreNew = c.osSemaphoreNew;
+pub const osSemaphoreAcquire = c.osSemaphoreAcquire;
+pub const osSemaphoreRelease = c.osSemaphoreRelease;
+pub const osSemaphoreGetCount = c.osSemaphoreGetCount;
+pub const osSemaphoreDelete = c.osSemaphoreDelete;
+
 const semaphore = @This();
 
 id: osSemaphoreId_t = undefined,
