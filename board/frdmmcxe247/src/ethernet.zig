@@ -88,8 +88,10 @@ pub fn Netif() type {
     return struct {
         netIf: c.netif,
         dhcp: c.dhcp,
+        cb_mem: c.netif_ext_callback_t,
         speed: u32,
         duplex: bool,
+        dhcp_bound: bool,
 
         fn link_status_callback(n: [*c]c.netif) callconv(.c) void {
             var self: *@This() = @fieldParentPtr("netIf", @as(*c.netif, @ptrCast(n)));
@@ -113,13 +115,24 @@ pub fn Netif() type {
             } else {
                 self.speed = 0;
                 self.duplex = false;
+                self.dhcp_bound = false;
+
                 // Link is inactive: Event linkdown
             }
         }
 
         fn status_callback(n: [*c]c.netif) callconv(.c) void {
             const self: *@This() = @fieldParentPtr("netIf", @as(*c.netif, @ptrCast(n)));
+
+            self.dhcp_bound = (@as(u32, @intCast(c.dhcp_supplied_address(n))) == 1);
+        }
+
+        fn ext_callback(n: [*c]c.netif, reason: c.netif_nsc_reason_t, args: [*c]const c.netif_ext_callback_args_t) callconv(.c) void {
+            const self: *@This() = @fieldParentPtr("netIf", @as(*c.netif, @ptrCast(n)));
+            //
             _ = self;
+            _ = reason;
+            _ = args;
         }
 
         pub fn default() @This() {
@@ -128,6 +141,8 @@ pub fn Netif() type {
                 .speed = 0,
                 .duplex = false,
                 .dhcp = undefined,
+                .cb_mem = undefined,
+                .dhcp_bound = false,
             };
         }
 
@@ -138,6 +153,7 @@ pub fn Netif() type {
         pub fn set_callbacks(self: *@This()) void {
             c.netif_set_link_callback(&(self.netIf), link_status_callback);
             c.netif_set_status_callback(&(self.netIf), status_callback);
+            c.netif_add_ext_callback(&(self.cb_mem), ext_callback);
         }
 
         pub fn add(self: *@This()) !void {

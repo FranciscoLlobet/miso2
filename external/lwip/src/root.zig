@@ -4,6 +4,7 @@
 //   const c    = lwip.c;
 pub const c = @cImport({
     @cInclude("lwip/init.h");
+    @cInclude("lwip/api.h");
     @cInclude("lwip/netif.h");
     @cInclude("lwip/timeouts.h");
     @cInclude("lwip/dhcp.h");

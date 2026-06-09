@@ -40,6 +40,14 @@ const mainRunType = struct {
         _ = thread.flagsSet(1) catch unreachable;
     }
 
+    fn getHostByName(name: []u8) board.c.ip_addr_t {
+        var ipAddr: board.c.ip_addr_t = undefined;
+
+        _ = board.c.netconn_gethostbyname(name.ptr, &ipAddr);
+
+        return ipAddr;
+    }
+
     fn runner(self: ?*@This()) void {
         //_ = self;
         board.lpuart2.write("MISO2 starting\r\n") catch {};
@@ -94,7 +102,11 @@ const mainRunType = struct {
         var last_print_ms: u32 = 0;
         //var dhcp_bound = false;
 
+        //var state: u32 = 0;
+        //_ = state;
+
         while (true) {
+
             // Get current state
 
             // state no-linkup
@@ -115,6 +127,7 @@ const mainRunType = struct {
             //    dhcp_bound = true;
             //    _ = board.c.printf("DHCP bound: %s\r\n", board.c.ipaddr_ntoa(board.netif.getReference().ip_addr));
             //}
+            _ = getHostByName(@constCast("pool.ntp.org"));
 
             const now = kernel.getTickCount();
             if (now -% last_print_ms >= 1000) {
