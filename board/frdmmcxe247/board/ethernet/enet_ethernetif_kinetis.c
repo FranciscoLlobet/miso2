@@ -51,9 +51,8 @@
 #include "netif/etharp.h"
 #include "netif/ppp/pppoe.h"
 
-#if USE_RTOS && defined(SDK_OS_FREE_RTOS)
-#include "FreeRTOS.h"
-#include "event_groups.h"
+#if !NO_SYS
+#include "cmsis_os2.h"
 #endif
 
 #include "ethernetif.h"
@@ -171,12 +170,12 @@ typedef struct rx_pbuf_wrapper
 struct ethernetif
 {
     ENET_Type *base;
-#if (defined(FSL_FEATURE_SOC_ENET_COUNT) && (FSL_FEATURE_SOC_ENET_COUNT > 0)) || (USE_RTOS && defined(SDK_OS_FREE_RTOS))
+#if (defined(FSL_FEATURE_SOC_ENET_COUNT) && (FSL_FEATURE_SOC_ENET_COUNT > 0)) || !NO_SYS
     enet_handle_t handle;
 #endif
-#if USE_RTOS && defined(SDK_OS_FREE_RTOS)
-    EventGroupHandle_t enetTransmitAccessEvent;
-    EventBits_t txFlag;
+#if !NO_SYS
+    osEventFlagsId_t enetTransmitAccessEvent;
+    uint32_t txFlag;
 #endif
     enet_rx_bd_struct_t *RxBuffDescrip;
     enet_tx_bd_struct_t *TxBuffDescrip;
@@ -203,7 +202,7 @@ void *ethernetif_get_enet_base(const uint8_t enetIdx);
 /*******************************************************************************
  * Code
  ******************************************************************************/
-#if USE_RTOS && defined(SDK_OS_FREE_RTOS)
+#if !NO_SYS
 static void ethernet_callback(ENET_Type *base,
                               enet_handle_t *handle,
 #if FSL_FEATURE_ENET_QUEUE > 1
@@ -215,7 +214,10 @@ static void ethernet_callback(ENET_Type *base,
 {
     struct netif *netif           = (struct netif *)userData;
     struct ethernetif *ethernetif = netif->state;
-    BaseType_t xResult;
+
+    (void)base;
+    (void)handle;
+    (void)frameInfo;
 
     switch (event)
     {
@@ -223,36 +225,14 @@ static void ethernet_callback(ENET_Type *base,
             ethernetif_input(netif);
             break;
         case kENET_TxEvent:
-        {
-            portBASE_TYPE taskToWake = pdFALSE;
-
-#ifdef __CA7_REV
-            if (SystemGetIRQNestingLevel())
-#else
-            if (__get_IPSR())
-#endif
-            {
-                xResult =
-                    xEventGroupSetBitsFromISR(ethernetif->enetTransmitAccessEvent, ethernetif->txFlag, &taskToWake);
-                LWIP_ASSERT(
-                    "xEventGroupSetBitsFromISR failed, increase configTIMER_QUEUE_LENGTH or configTIMER_TASK_PRIORITY",
-                    pdPASS == xResult);
-                if (pdPASS == xResult)
-                {
-                    portYIELD_FROM_ISR(taskToWake);
-                }
-            }
-            else
-            {
-                xEventGroupSetBits(ethernetif->enetTransmitAccessEvent, ethernetif->txFlag);
-            }
-        }
-        break;
+            /* osEventFlagsSet is ISR-safe; no context branching needed. */
+            osEventFlagsSet(ethernetif->enetTransmitAccessEvent, ethernetif->txFlag);
+            break;
         default:
             break;
     }
 }
-#endif
+#endif /* !NO_SYS */
 
 #if (LWIP_IPV4 && LWIP_IGMP) || (LWIP_IPV6 && LWIP_IPV6_MLD)
 static err_t ethernetif_mcastmacfilter_action(struct netif *netif,
@@ -447,20 +427,19 @@ void ethernetif_plat_init(struct netif *netif,
     BOARD_ENETFlexibleConfigure(&config);
 #endif
 
-#if USE_RTOS && defined(SDK_OS_FREE_RTOS)
+#if !NO_SYS
     uint32_t instance;
     static ENET_Type *const enetBases[]  = ENET_BASE_PTRS;
     static const IRQn_Type enetTxIrqId[] = ENET_Transmit_IRQS;
-    /*! @brief Pointers to enet receive IRQ number for each instance. */
     static const IRQn_Type enetRxIrqId[] = ENET_Receive_IRQS;
 #if defined(ENET_ENHANCEDBUFFERDESCRIPTOR_MODE) && ENET_ENHANCEDBUFFERDESCRIPTOR_MODE
-    /*! @brief Pointers to enet timestamp IRQ number for each instance. */
     static const IRQn_Type enetTsIrqId[] = ENET_1588_Timer_IRQS;
 #endif /* ENET_ENHANCEDBUFFERDESCRIPTOR_MODE */
 
-    /* Create the Event for transmit busy release trigger. */
-    ethernetif->enetTransmitAccessEvent = xEventGroupCreate();
-    ethernetif->txFlag                  = 0x1;
+    /* Create event flags for TX-done signaling. */
+    ethernetif->enetTransmitAccessEvent = osEventFlagsNew(NULL);
+    LWIP_ASSERT("osEventFlagsNew() failed", ethernetif->enetTransmitAccessEvent != NULL);
+    ethernetif->txFlag = 0x1U;
 
     config.interrupt |=
         kENET_RxFrameInterrupt | kENET_TxFrameInterrupt | kENET_TxBufferInterrupt | kENET_LateCollisionInterrupt;
@@ -488,7 +467,7 @@ void ethernetif_plat_init(struct netif *netif,
     }
 
     LWIP_ASSERT("Input Ethernet base error!", (instance != ARRAY_SIZE(enetBases)));
-#endif /* USE_RTOS */
+#endif /* !NO_SYS */
 
     for (i = 0; i < ENET_RXBUFF_NUM; i++)
     {
@@ -587,39 +566,37 @@ static unsigned char *enet_get_tx_buffer(struct ethernetif *ethernetif)
  */
 static err_t enet_send_frame(struct ethernetif *ethernetif, unsigned char *data, const uint32_t length)
 {
-#if USE_RTOS && defined(SDK_OS_FREE_RTOS)
+#if !NO_SYS
+    status_t result;
+
+    do
     {
-        status_t result;
+        result = ENET_SendFrame(ethernetif->base, &ethernetif->handle, data, length, 0, false, NULL);
 
-        do
+        if (result == kStatus_ENET_TxFrameBusy)
         {
-            result = ENET_SendFrame(ethernetif->base, &ethernetif->handle, data, length, 0, false, NULL);
-
-            if (result == kStatus_ENET_TxFrameBusy)
-            {
-                xEventGroupWaitBits(ethernetif->enetTransmitAccessEvent, ethernetif->txFlag, pdTRUE, (BaseType_t) false,
-                                    portMAX_DELAY);
-            }
-
-        } while (result == kStatus_ENET_TxFrameBusy);
-        return ERR_OK;
-    }
-#else
-    {
-        uint32_t counter;
-
-        for (counter = ETHERNETIF_TIMEOUT; counter != 0U; counter--)
-        {
-            if (ENET_SendFrame(ethernetif->base, &ethernetif->handle, data, length, 0, false, NULL) !=
-                kStatus_ENET_TxFrameBusy)
-            {
-                return ERR_OK;
-            }
+            /* Block until the TX-done callback fires; osFlagsWaitAny clears the flag on return. */
+            osEventFlagsWait(ethernetif->enetTransmitAccessEvent, ethernetif->txFlag,
+                             osFlagsWaitAny, osWaitForever);
         }
 
-        return ERR_TIMEOUT;
+    } while (result == kStatus_ENET_TxFrameBusy);
+
+    return ERR_OK;
+#else
+    uint32_t counter;
+
+    for (counter = ETHERNETIF_TIMEOUT; counter != 0U; counter--)
+    {
+        if (ENET_SendFrame(ethernetif->base, &ethernetif->handle, data, length, 0, false, NULL) !=
+            kStatus_ENET_TxFrameBusy)
+        {
+            return ERR_OK;
+        }
     }
-#endif
+
+    return ERR_TIMEOUT;
+#endif /* !NO_SYS */
 }
 
 /**

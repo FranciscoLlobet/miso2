@@ -93,6 +93,7 @@ pub fn build(b: *std.Build) void {
     board.addIncludePath(mcuxsdk_core.artifact("mcuxsdk-core").getEmittedIncludeTree().path(b, "mcuxsdk-core/include"));
     board.addIncludePath(mcux_devices_mcx.artifact("mcux-devices-mcx").getEmittedIncludeTree().path(b, "mcux-devices-mcx/include"));
     board.addIncludePath(cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/core/include"));
+    board.addIncludePath(cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/rtos2/include"));
     board.addIncludePath(mcux_component.artifact("mcux-component").getEmittedIncludeTree().path(b, "mcux-component/include"));
     board.addIncludePath(lwip_lib.getEmittedIncludeTree().path(b, "lwip/include"));
 
@@ -144,6 +145,7 @@ pub fn build(b: *std.Build) void {
     lib.root_module.addIncludePath(mcuxsdk_core.artifact("mcuxsdk-core").getEmittedIncludeTree().path(b, "mcuxsdk-core/include"));
     lib.root_module.addIncludePath(mcux_devices_mcx.artifact("mcux-devices-mcx").getEmittedIncludeTree().path(b, "mcux-devices-mcx/include"));
     lib.root_module.addIncludePath(cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/core/include"));
+    lib.root_module.addIncludePath(cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/rtos2/include"));
     lib.root_module.addIncludePath(mcux_component.artifact("mcux-component").getEmittedIncludeTree().path(b, "mcux-component/include"));
     lib.root_module.addIncludePath(lwip_lib.getEmittedIncludeTree().path(b, "lwip/include"));
 

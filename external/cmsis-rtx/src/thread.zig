@@ -15,6 +15,7 @@ const core = @import("core.zig");
 const c = core.c;
 
 pub const osError = core.osError;
+pub const osFlagsOptions = core.osFlagsOptions;
 
 const osFlagsErrorMap = core.osFlagsErrorMap;
 const osErrorMap = core.osErrorMap;
@@ -179,8 +180,14 @@ pub inline fn flagsGet() osError!u32 {
 }
 
 /// Wait for current flags
-pub inline fn flagsWait(flags: u32, options: u32, timeout: u32) osError!u32 {
-    return osFlagsErrorMap(osThreadFlagsWait(flags, options, timeout));
+pub inline fn flagsWait(flags: u32, options: osFlagsOptions, timeout: u32) osError!u32 {
+    return osFlagsErrorMap(
+        osThreadFlagsWait(
+            flags,
+            @intFromEnum(options),
+            timeout,
+        ),
+    );
 }
 
 pub inline fn feedWatchdog(ticks: u32) osError!void {
@@ -265,8 +272,12 @@ pub fn StaticThread(
         pub fn flagsGet(_: *const @This()) osError!u32 {
             return thread.flagsGet();
         }
-        pub fn flagsWait(_: *const @This(), flags: u32, options: u32, timeout: u32) osError!u32 {
-            return thread.flagsWait(flags, options, timeout);
+        pub fn flagsWait(_: *const @This(), flags: u32, options: osFlagsOptions, timeout: u32) osError!u32 {
+            return thread.flagsWait(
+                flags,
+                options,
+                timeout,
+            );
         }
         pub fn yield(_: *const @This()) osError!void {
             return thread.yield();

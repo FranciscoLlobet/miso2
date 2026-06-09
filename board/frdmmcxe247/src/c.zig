@@ -15,4 +15,5 @@ pub const c = @cImport({
     @cInclude("lwip/ip_addr.h");
     @cInclude("lwip/tcpip.h");
     @cInclude("netif/ethernet.h");
+    @cInclude("lwip/netifapi.h");
 });

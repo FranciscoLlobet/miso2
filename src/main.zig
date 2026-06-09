@@ -17,220 +17,6 @@ var jobQueue = JobQueue(
 // Incremented by POLL_MS on each polling iteration.
 // =========================================================================
 
-const sys_err_t = enum(i32) {
-    ERR_OK = 0,
-    ERR_MEM = -1,
-};
-
-const SYS_TIMEOUT: u32 = 0xffffffff;
-const SYS_MBOX_EMPTY = SYS_TIMEOUT;
-
-const sys_mutex_type = ?*rtx.mutex.osMutexId_t;
-const sys_mbox_type = ?*rtx.messageQueue.osMessageQueueId_t;
-const sys_sem_type = ?*rtx.semaphore.osSemaphoreId_t;
-
-export fn sys_now() callconv(.c) u32 {
-    return kernel.getTickCount();
-}
-
-export fn sys_init() callconv(.c) void {
-    //
-}
-
-export fn sys_arch_msleep(
-    delay_ms: u32,
-) callconv(.c) void {
-    return rtx.osDelay(delay_ms) catch unreachable;
-}
-
-export fn sys_mutex_new(
-    mutex: sys_mutex_type,
-) callconv(.c) i32 {
-    mutex.?.* = rtx.mutex.osMutexNew(null);
-    return 0;
-}
-
-export fn sys_mutex_lock(
-    mutex: sys_mutex_type,
-) callconv(.c) void {
-    //while( )
-    _ = rtx.mutex.osMutexAcquire(mutex.?.*, rtx.osWaitForever);
-}
-
-export fn sys_mutex_unlock(
-    mutex: sys_mutex_type,
-) callconv(.c) void {
-    _ = rtx.mutex.osMutexRelease(mutex.?.*);
-}
-
-export fn sys_mbox_new(
-    mbox: sys_mbox_type,
-    iSize: c_int,
-) i32 {
-    mbox.?.* = rtx.messageQueue.osMessageQueueNew(@intCast(iSize), @sizeOf(?*anyopaque), null);
-
-    return if (mbox.?.* == null) @intFromEnum(sys_err_t.ERR_MEM) else @intFromEnum(sys_err_t.ERR_OK);
-}
-
-export fn sys_mbox_post(
-    mbox: sys_mbox_type,
-    msg: ?*anyopaque,
-) void {
-    _ = rtx.messageQueue.osMessageQueuePut(mbox.?.*, @ptrCast(&msg), 0, rtx.osWaitForever);
-}
-
-export fn sys_mbox_trypost(
-    mbox: sys_mbox_type,
-    msg: ?*anyopaque,
-) i32 {
-    const status = rtx.messageQueue.osMessageQueuePut(mbox.?.*, @ptrCast(&msg), 0, rtx.osWaitNever);
-
-    return if (status == rtx.osOk) @intFromEnum(sys_err_t.ERR_OK) else @intFromEnum(sys_err_t.ERR_MEM);
-}
-
-export fn sys_mbox_trypost_fromisr(
-    mbox: sys_mbox_type,
-    msg: ?*anyopaque,
-) i32 {
-    return sys_mbox_trypost(mbox, msg);
-}
-
-export fn sys_arch_mbox_fetch(
-    mbox: sys_mbox_type,
-    ppvBuffer: ?*?*anyopaque,
-    ulTimeout: u32,
-) u32 {
-    const start_time = kernel.getTickCount();
-
-    var dummy: ?*anyopaque = undefined;
-    const msg: *?*anyopaque = ppvBuffer orelse &dummy;
-
-    const status = rtx.messageQueue.osMessageQueueGet(
-        mbox.?.*,
-        @ptrCast(msg),
-        null,
-        if (ulTimeout == 0) rtx.osWaitForever else ulTimeout,
-    );
-
-    return if (status == rtx.osOk) (kernel.getTickCount() - start_time) else SYS_TIMEOUT;
-}
-
-export fn sys_thread_new(
-    name: ?[*:0]const u8,
-    thread_fn: ?*const fn (?*anyopaque) callconv(.c) void,
-    arg: ?*anyopaque,
-    stacksize: c_int,
-    prio: c_int,
-) ?*anyopaque {
-    const attr: rtx.thread.osThreadAttr_t = .{
-        .name = name,
-        .attr_bits = 0,
-        .cb_mem = null,
-        .cb_size = 0,
-        .stack_mem = null,
-        .stack_size = @intCast(stacksize),
-        .priority = prio,
-        .tz_module = 0,
-        .affinity_mask = 0,
-    };
-    return rtx.thread.osThreadNew(thread_fn, arg, &attr);
-}
-
-export fn sys_mutex_free(
-    mutex: sys_mutex_type,
-) void {
-    _ = rtx.mutex.osMutexDelete(mutex.?.*);
-}
-
-export fn sys_mutex_valid(
-    mutex: sys_mutex_type,
-) c_int {
-    return if ((mutex != null) and (mutex.?.* != null)) 1 else 0;
-}
-
-export fn sys_mutex_set_invalid(
-    mutex: sys_mutex_type,
-) void {
-    if (mutex) |m| m.* = null;
-}
-
-export fn sys_sem_new(
-    sem: sys_sem_type,
-    count: u8,
-) i32 {
-    sem.?.* = rtx.semaphore.osSemaphoreNew(
-        1,
-        count,
-        null,
-    );
-    return if (sem.?.* == null) @intFromEnum(sys_err_t.ERR_MEM) else @intFromEnum(sys_err_t.ERR_OK);
-}
-
-export fn sys_sem_signal(
-    sem: sys_sem_type,
-) void {
-    _ = rtx.semaphore.osSemaphoreRelease(sem.?.*);
-}
-
-export fn sys_arch_sem_wait(
-    sem: sys_sem_type,
-    ulTimeout: u32,
-) u32 {
-    const start_time = kernel.getTickCount();
-    const status = rtx.semaphore.osSemaphoreAcquire(
-        sem.?.*,
-        if (ulTimeout == 0) rtx.osWaitForever else ulTimeout,
-    );
-    return if (status == rtx.osOk) kernel.getTickCount() - start_time else SYS_TIMEOUT;
-}
-
-export fn sys_sem_free(
-    sem: sys_sem_type,
-) void {
-    _ = rtx.semaphore.osSemaphoreDelete(sem.?.*);
-}
-
-export fn sys_sem_valid(
-    sem: sys_sem_type,
-) c_int {
-    return if ((sem != null) and (sem.?.* != null)) 1 else 0;
-}
-
-export fn sys_sem_set_invalid(
-    sem: sys_sem_type,
-) void {
-    if (sem) |s| s.* = null;
-}
-
-export fn sys_mbox_free(mbox: sys_mbox_type) void {
-    _ = rtx.messageQueue.osMessageQueueDelete(mbox.?.*);
-}
-
-export fn sys_arch_mbox_tryfetch(
-    mbox: sys_mbox_type,
-    ppvBuffer: ?*?*anyopaque,
-) u32 {
-    var dummy: ?*anyopaque = undefined;
-    const msg: *?*anyopaque = ppvBuffer orelse &dummy;
-    const status = rtx.messageQueue.osMessageQueueGet(
-        mbox.?.*,
-        @ptrCast(msg),
-        null,
-        rtx.osWaitNever,
-    );
-    return if (status == rtx.osOk) 0 else SYS_MBOX_EMPTY;
-}
-
-extern var lock_tcpip_core: rtx.mutex.osMutexId_t;
-
-export fn sys_lock_tcpip_core() callconv(.c) void {
-    sys_mutex_lock(&lock_tcpip_core);
-}
-
-export fn sys_unlock_tcpip_core() callconv(.c) void {
-    sys_mutex_unlock(&lock_tcpip_core);
-}
-
 // netif must outlive all lwIP usage; netif_add initialises it fully.
 export var dhcp: board.c.dhcp = undefined;
 
@@ -248,8 +34,14 @@ const mainRunType = struct {
         try board.lpuart2.initialize();
     }
 
+    fn tcpip_init_done(arg: ?*anyopaque) callconv(.c) void {
+        const thread = rtx.thread.create(arg) catch unreachable;
+
+        _ = thread.flagsSet(1) catch unreachable;
+    }
+
     fn runner(self: ?*@This()) void {
-        _ = self;
+        //_ = self;
         board.lpuart2.write("MISO2 starting\r\n") catch {};
 
         // ---------------------------------------------------------------
@@ -264,25 +56,35 @@ const mainRunType = struct {
         // ---------------------------------------------------------------
         // lwIP init
         // ---------------------------------------------------------------
-        //board.c.lwip_init();
-
         board.c.tcpip_init(
-            null,
-            null,
+            tcpip_init_done,
+            self.?.thread.thread.id,
         );
+
+        _ = self.?.thread.flagsWait(
+            1,
+            .osFlagsWaitAny,
+            rtx.osWaitForever,
+        ) catch unreachable;
 
         board.netif.add() catch unreachable;
 
         board.netif.set_callbacks();
-        board.c.dhcp_set_struct(board.netif.getReference(), &dhcp);
+
+        board.netif.dhcp_set_struct();
 
         board.netif.set_default() catch unreachable;
 
         board.netif.set_up();
 
-        while (board.c.ERR_OK != board.c.ethernetif_wait_linkup(board.netif.getReference(), 5000)) {}
+        while (board.c.ERR_OK != board.c.ethernetif_wait_linkup(
+            board.netif.getReference(),
+            5000,
+        )) {
+            //
+        }
 
-        _ = board.c.dhcp_start(board.netif.getReference());
+        board.netif.dhcp_start();
 
         board.lpuart2.write("DHCP started\r\n") catch {};
 
@@ -302,10 +104,10 @@ const mainRunType = struct {
             // ...
 
             // Process input
-            board.netif.input() catch unreachable;
+            //board.netif.input() catch unreachable;
 
             // Check timeouts
-            board.c.sys_check_timeouts();
+            //board.c.sys_check_timeouts();
 
             // periodic state
 
@@ -330,7 +132,9 @@ const mainRunType = struct {
         unreachable;
     }
 
-    pub fn job(_: ?*anyopaque) void {}
+    pub fn job(_: ?*anyopaque) void {
+        //
+    }
 };
 
 var main_task: mainRunType = undefined;

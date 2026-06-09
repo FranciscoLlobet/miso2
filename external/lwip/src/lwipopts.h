@@ -156,12 +156,13 @@ extern void sys_mark_tcpip_thread(void);
 #define LWIP_ETHERNET           1
 #define LWIP_NETIF_HOSTNAME     1
 #define LWIP_NETIF_STATUS_CALLBACK  1
+#define LWIP_NETIF_EXT_STATUS_CALLBACK 1
 #define LWIP_NETIF_LINK_CALLBACK    1
 #define LWIP_SINGLE_NETIF 1
 
 
 #define TCPIP_THREAD_NAME "tcpip_thread"
-#define TCPIP_THREAD_STACKSIZE 1024U
+#define TCPIP_THREAD_STACKSIZE 4096U
 #define TCPIP_THREAD_PRIO 8
 #define TCPIP_MBOX_SIZE 32U
 #define LWIP_TCPIP_THREAD_ALIVE( ) 
@@ -195,7 +196,7 @@ extern void sys_mark_tcpip_thread(void);
 #define CHECKSUM_CHECK_UDP      1
 #define CHECKSUM_CHECK_TCP      1
 
-
+#define LWIP_NETIF_API          1
 
 
 /* =========================================================================

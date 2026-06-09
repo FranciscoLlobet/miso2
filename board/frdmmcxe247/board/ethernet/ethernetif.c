@@ -55,12 +55,8 @@
 #include "lwip/netif.h"
 #include "lwip/sys.h"
 
-#if USE_RTOS && defined(SDK_OS_FREE_RTOS)
-#include "FreeRTOS.h"
-#include "event_groups.h"
-#include "portmacro.h"
-#include "lwip/tcpip.h"
-#elif !NO_SYS
+#if !NO_SYS
+#include "cmsis_os2.h"
 #include "lwip/tcpip.h"
 #endif
 
@@ -75,7 +71,7 @@
 static void probe_link_cyclic(void *netif_);
 #endif
 
-#if defined(SDK_OS_FREE_RTOS) && (LWIP_NETIF_EXT_STATUS_CALLBACK == 1)
+#if !NO_SYS && (LWIP_NETIF_EXT_STATUS_CALLBACK == 1)
 
 #ifndef ETH_WAIT_QUEUE_MSG_CNT
 #define ETH_WAIT_QUEUE_MSG_CNT (1)
@@ -87,35 +83,36 @@ struct extcb_msg
     netif_nsc_reason_t reason;
 };
 
-static QueueHandle_t extcb_queue = NULL;
+static osMessageQueueId_t extcb_queue = NULL;
 
-#endif /* defined(SDK_OS_FREE_RTOS) && (LWIP_NETIF_EXT_STATUS_CALLBACK == 1) */
+#endif /* !NO_SYS && (LWIP_NETIF_EXT_STATUS_CALLBACK == 1) */
 
-/* Under FreeRTOS, define ETH_DO_RX_IN_SEPARATE_TASK 0 to move processing of received
+/* Define ETH_DO_RX_IN_SEPARATE_TASK 0 to move processing of received
  * packets from a separate task to an interrupt. It increases throughput and saves some
  * memory from a separate task stack at cost of worse system response time.
  */
-#ifndef SDK_OS_FREE_RTOS
+#ifndef ETH_DO_RX_IN_SEPARATE_TASK
+#if !NO_SYS
+#define ETH_DO_RX_IN_SEPARATE_TASK 1
+#else
 #define ETH_DO_RX_IN_SEPARATE_TASK 0
 #endif
-
-#ifndef ETH_DO_RX_IN_SEPARATE_TASK
-#define ETH_DO_RX_IN_SEPARATE_TASK 1
 #endif
 
 #if ETH_DO_RX_IN_SEPARATE_TASK
 
 #ifndef ETH_RX_TASK_STACK_SIZE
-#define ETH_RX_TASK_STACK_SIZE (512)
+/* Stack size in bytes; the FreeRTOS port used 512 words = 2048 bytes. */
+#define ETH_RX_TASK_STACK_SIZE (4096U)
 #endif
 
 #ifndef ETH_RX_TASK_PRIO
-#define ETH_RX_TASK_PRIO ((configTIMER_TASK_PRIORITY)-1)
+#define ETH_RX_TASK_PRIO (osPriorityAboveNormal)
 #endif
 
-static TaskHandle_t ethernetif_rx_task = NULL;
+static osThreadId_t ethernetif_rx_task = NULL;
 
-#endif /* #if ETH_DO_RX_IN_SEPARATE_TASK */
+#endif /* ETH_DO_RX_IN_SEPARATE_TASK */
 
 #if ((LWIP_IPV6 == 1) && (LWIP_NETIF_EXT_STATUS_CALLBACK == 1))
 static netif_status_callback_fn ipv6_valid_state_user_cb;
@@ -242,10 +239,10 @@ static void rx_task(void *arg)
 
     while (true)
     {
-        uint32_t bits = 0;
-        xTaskNotifyWait(0U /*ulBitsToClearOnEntry*/, 0xFFFFFFFFU /*ulBitsToClearOnExit*/, &bits, portMAX_DELAY);
+        /* Wait for any of bits 0-30; bit 31 is reserved by CMSIS-RTOS2. */
+        uint32_t bits = osThreadFlagsWait(0x7FFFFFFFU, osFlagsWaitAny, osWaitForever);
 
-        /* When notified form ISR fetch all received packet from desired netifs. */
+        /* When notified from ISR fetch all received packets from desired netifs. */
         NETIF_FOREACH(netif_)
         {
             if (0U != (bits & netif_to_bitmask(netif_)))
@@ -269,25 +266,8 @@ static void rx_task(void *arg)
 void ethernetif_input(struct netif *netif_)
 {
 #if ETH_DO_RX_IN_SEPARATE_TASK
-    (void)netif_;
-
-#ifdef __CA7_REV
-    if (SystemGetIRQNestingLevel())
-#else /* __CA7_REV */
-    if (__get_IPSR())
-#endif
-    {
-        portBASE_TYPE taskToWake = pdFALSE;
-        xTaskNotifyFromISR(ethernetif_rx_task, netif_to_bitmask(netif_), eSetBits, &taskToWake);
-        if (taskToWake == pdTRUE)
-        {
-            portYIELD_FROM_ISR(taskToWake);
-        }
-    }
-    else
-    {
-        (void)xTaskNotifyGive(ethernetif_rx_task);
-    }
+    /* osThreadFlagsSet is ISR-safe; no context branching needed. */
+    osThreadFlagsSet(ethernetif_rx_task, netif_to_bitmask(netif_));
 #else
     fetch_received_pkts(netif_);
 #endif /* ETH_DO_RX_IN_SEPARATE_TASK */
@@ -307,19 +287,20 @@ err_t ethernetif_init(struct netif *netif_,
 #endif /* LWIP_NETIF_HOSTNAME */
 
 #if ETH_DO_RX_IN_SEPARATE_TASK
-    /* We have only 32 bits (one bit for each netif) in task notification
-       but app could create up to 254 netifs. On each remove -> add index
-       is rising and then wrapped around 255. */
-    LWIP_ASSERT("Too many netif creations.", netif_get_index(netif_) <= 32);
+    /* Thread flags are 31-bit (bit 31 reserved by CMSIS-RTOS2); one bit per netif. */
+    LWIP_ASSERT("Too many netif creations.", netif_get_index(netif_) <= 30);
 
     /* Initialize lwIP rx thread */
     if (NULL == ethernetif_rx_task)
     {
-        BaseType_t ret =
-            xTaskCreate(rx_task, "lwip_rx", ETH_RX_TASK_STACK_SIZE, NULL, ETH_RX_TASK_PRIO, &ethernetif_rx_task);
-        if (ret != pdPASS)
+        const osThreadAttr_t rx_task_attr = {
+            .name       = "lwip_rx",
+            .stack_size = ETH_RX_TASK_STACK_SIZE,
+            .priority   = ETH_RX_TASK_PRIO,
+        };
+        ethernetif_rx_task = osThreadNew(rx_task, NULL, &rx_task_attr);
+        if (ethernetif_rx_task == NULL)
         {
-            ethernetif_rx_task = NULL;
             LWIP_ASSERT("ethernetif_init(): RX task creation failed.", 0);
             return ERR_MEM;
         }
@@ -463,19 +444,17 @@ static void probe_link_cyclic(void *netif_)
 }
 #endif /* ETH_LINK_POLLING_INTERVAL_MS > 0 */
 
-#if defined(SDK_OS_FREE_RTOS) && (LWIP_NETIF_EXT_STATUS_CALLBACK == 1)
+#if !NO_SYS && (LWIP_NETIF_EXT_STATUS_CALLBACK == 1)
 
 static void extcb(struct netif *cb_netif, netif_nsc_reason_t reason, const netif_ext_callback_args_t *args)
 {
     (void)args;
 
     struct extcb_msg msg = {cb_netif, reason};
-    (void)xQueueSend(extcb_queue, (void *)&msg, portMAX_DELAY);
+    (void)osMessageQueuePut(extcb_queue, &msg, 0, osWaitForever);
 }
 
-#endif /* #if defined(SDK_OS_FREE_RTOS) && (LWIP_NETIF_EXT_STATUS_CALLBACK == 1) */
-
-#if (defined(SDK_OS_FREE_RTOS) && (LWIP_NETIF_EXT_STATUS_CALLBACK == 1)) || (!defined(SDK_OS_FREE_RTOS))
+#endif /* !NO_SYS && (LWIP_NETIF_EXT_STATUS_CALLBACK == 1) */
 
 err_enum_t ethernetif_wait_linkup(struct netif *netif_, long timeout_ms)
 {
@@ -484,10 +463,10 @@ err_enum_t ethernetif_wait_linkup(struct netif *netif_, long timeout_ms)
 
 err_enum_t ethernetif_wait_linkup_array(struct netif **netif_array, int netif_array_len, long timeout_ms)
 {
-#ifdef SDK_OS_FREE_RTOS
+#if !NO_SYS
 
-    TickType_t timeout_ticks =
-        (ETHERNETIF_WAIT_FOREVER == timeout_ms) ? portMAX_DELAY : timeout_ms / portTICK_PERIOD_MS;
+    uint32_t timeout_ticks =
+        (ETHERNETIF_WAIT_FOREVER == timeout_ms) ? osWaitForever : (uint32_t)timeout_ms;
     netif_ext_callback_t cb_mem;
     err_enum_t ret = ERR_INPROGRESS;
 
@@ -503,7 +482,7 @@ err_enum_t ethernetif_wait_linkup_array(struct netif **netif_array, int netif_ar
         }
     }
 
-    extcb_queue = xQueueCreate(ETH_WAIT_QUEUE_MSG_CNT, sizeof(struct extcb_msg));
+    extcb_queue = osMessageQueueNew(ETH_WAIT_QUEUE_MSG_CNT, sizeof(struct extcb_msg), NULL);
 
     if (NULL == extcb_queue)
     {
@@ -533,7 +512,7 @@ err_enum_t ethernetif_wait_linkup_array(struct netif **netif_array, int netif_ar
         {
             struct extcb_msg msg;
 
-            if (xQueueReceive(extcb_queue, &msg, timeout_ticks) == pdPASS)
+            if (osMessageQueueGet(extcb_queue, &msg, NULL, timeout_ticks) == osOK)
             {
                 for (int i = 0; i < netif_array_len; i++)
                 {
@@ -558,13 +537,13 @@ err_enum_t ethernetif_wait_linkup_array(struct netif **netif_array, int netif_ar
     UNLOCK_TCPIP_CORE();
     if (NULL != extcb_queue)
     {
-        vQueueDelete(extcb_queue);
+        osMessageQueueDelete(extcb_queue);
         extcb_queue = NULL;
     }
 
     return ret;
 
-#else  /* no RTOS */
+#else  /* NO_SYS - bare-metal */
 
     uint32_t now                = sys_now();
     const uint32_t force_wrap   = now >= (UINT32_MAX / 2) ? (UINT32_MAX / 2) : 0U;
@@ -596,15 +575,16 @@ err_enum_t ethernetif_wait_linkup_array(struct netif **netif_array, int netif_ar
         }
     }
 
-#endif /* defined(SDK_OS_FREE_RTOS) */
+#endif /* !NO_SYS */
 }
 
 #if LWIP_DHCP == 1
 err_enum_t ethernetif_wait_ipv4_valid(struct netif *netif_, long timeout_ms)
 {
-#ifdef SDK_OS_FREE_RTOS
-    TickType_t timeout_ticks =
-        (ETHERNETIF_WAIT_FOREVER == timeout_ms) ? portMAX_DELAY : timeout_ms / portTICK_PERIOD_MS;
+#if !NO_SYS
+
+    uint32_t timeout_ticks =
+        (ETHERNETIF_WAIT_FOREVER == timeout_ms) ? osWaitForever : (uint32_t)timeout_ms;
     netif_ext_callback_t cb_mem;
     err_enum_t ret = ERR_INPROGRESS;
 
@@ -617,7 +597,7 @@ err_enum_t ethernetif_wait_ipv4_valid(struct netif *netif_, long timeout_ms)
         return ERR_OK;
     }
 
-    extcb_queue = xQueueCreate(ETH_WAIT_QUEUE_MSG_CNT, sizeof(struct extcb_msg));
+    extcb_queue = osMessageQueueNew(ETH_WAIT_QUEUE_MSG_CNT, sizeof(struct extcb_msg), NULL);
 
     if (NULL == extcb_queue)
     {
@@ -636,7 +616,7 @@ err_enum_t ethernetif_wait_ipv4_valid(struct netif *netif_, long timeout_ms)
         {
             struct extcb_msg msg;
 
-            if (xQueueReceive(extcb_queue, &msg, timeout_ticks) == pdPASS)
+            if (osMessageQueueGet(extcb_queue, &msg, NULL, timeout_ticks) == osOK)
             {
                 if ((msg.cb_netif == netif_) && (msg.reason & LWIP_NSC_IPV4_ADDR_VALID))
                 {
@@ -645,7 +625,6 @@ err_enum_t ethernetif_wait_ipv4_valid(struct netif *netif_, long timeout_ms)
             }
             else
             {
-                // timeout
                 ret = ERR_TIMEOUT;
             }
         } while (ret == ERR_INPROGRESS);
@@ -656,13 +635,13 @@ err_enum_t ethernetif_wait_ipv4_valid(struct netif *netif_, long timeout_ms)
     UNLOCK_TCPIP_CORE();
     if (NULL != extcb_queue)
     {
-        vQueueDelete(extcb_queue);
+        osMessageQueueDelete(extcb_queue);
         extcb_queue = NULL;
     }
 
     return ret;
 
-#else  /* no RTOS */
+#else  /* NO_SYS - bare-metal */
 
     uint32_t now                = sys_now();
     const uint32_t force_wrap   = now >= (UINT32_MAX / 2) ? (UINT32_MAX / 2) : 0U;
@@ -690,12 +669,9 @@ err_enum_t ethernetif_wait_ipv4_valid(struct netif *netif_, long timeout_ms)
 
     return ERR_OK;
 
-#endif /* USE_RTOS && defined(SDK_OS_FREE_RTOS) && (LWIP_NETIF_EXT_STATUS_CALLBACK == 1) */
+#endif /* !NO_SYS */
 }
 #endif /* LWIP_DHCP == 1 */
-
-#endif /*(defined(SDK_OS_FREE_RTOS) && (LWIP_NETIF_EXT_STATUS_CALLBACK == 1)) || \
-       (!defined(SDK_OS_FREE_RTOS))*/
 
 #if ((LWIP_IPV6 == 1) && (LWIP_NETIF_EXT_STATUS_CALLBACK == 1))
 

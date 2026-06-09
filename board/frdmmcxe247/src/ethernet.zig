@@ -87,6 +87,7 @@ pub const nsc_reason = enum(u16) {
 pub fn Netif() type {
     return struct {
         netIf: c.netif,
+        dhcp: c.dhcp,
         speed: u32,
         duplex: bool,
 
@@ -126,6 +127,7 @@ pub fn Netif() type {
                 .netIf = undefined,
                 .speed = 0,
                 .duplex = false,
+                .dhcp = undefined,
             };
         }
 
@@ -168,6 +170,13 @@ pub fn Netif() type {
 
         pub fn getReference(self: *@This()) *c.netif {
             return &self.netIf;
+        }
+
+        pub fn dhcp_start(self: *@This()) void {
+            _ = c.netifapi_netif_common(&self.netIf, null, c.dhcp_start);
+        }
+        pub fn dhcp_set_struct(self: *@This()) void {
+            c.dhcp_set_struct(&self.netIf, &self.dhcp);
         }
     };
 }

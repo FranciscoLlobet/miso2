@@ -102,3 +102,8 @@ pub const Hacks = struct {
         };
     }
 };
+
+/// Get Kernel tick count
+pub fn getTickCount() u32 {
+    return c.osKernelGetTickCount();
+}

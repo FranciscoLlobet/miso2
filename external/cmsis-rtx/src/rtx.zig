@@ -49,3 +49,5 @@ pub const osDelayUntil = delay.osDelayUntil;
 
 pub const osWaitForever = core.osWaitForever;
 pub const osWaitNever = core.osWaitNever;
+
+pub const osFlagsOptions = core.osFlagsOptions;
