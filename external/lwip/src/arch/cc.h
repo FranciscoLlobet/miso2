@@ -12,6 +12,8 @@
 #ifndef LWIP_ARCH_CC_H
 #define LWIP_ARCH_CC_H
 
+#include <stdint.h>  /* uint32_t must be defined before lwip_rand() below */
+
 /* Cortex-M4 is always little-endian */
 #define BYTE_ORDER LITTLE_ENDIAN
 
@@ -56,13 +58,10 @@ uint32_t lwip_rand(void);
 /* -------------------------------------------------------------------------
  * Critical section abstraction:
  *
- * With SYS_LIGHTWEIGHT_PROT=0 (set in lwipopts.h) lwIP generates empty
- * SYS_ARCH_PROTECT / SYS_ARCH_DECL_PROTECT / SYS_ARCH_UNPROTECT macros
- * automatically — no definitions needed here.
- *
- * If SYS_LIGHTWEIGHT_PROT is later enabled (e.g. for FreeRTOS or to protect
- * against ISR-driven netif->input() calls), implement sys_arch_protect() /
- * sys_arch_unprotect() using PRIMASK disable/restore and define sys_prot_t.
+ * With SYS_LIGHTWEIGHT_PROT=1 (set in lwipopts.h), lwIP calls
+ * sys_arch_protect() / sys_arch_unprotect() for critical sections.
+ * Those are provided by the board package (board/ethernet/sys_arch.c)
+ * using DisableGlobalIRQ/EnableGlobalIRQ from the NXP SDK.
  * ------------------------------------------------------------------------- */
 
 #endif /* LWIP_ARCH_CC_H */

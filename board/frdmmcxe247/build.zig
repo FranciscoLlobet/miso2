@@ -73,6 +73,23 @@ pub fn build(b: *std.Build) void {
     const lwip_lib = lwip_dep.artifact("lwip");
     const lwip_mod = lwip_dep.module("lwip");
 
+    // Inject board-owned lwipopts.h and CMSIS headers into the lwip package —
+    // analogous to how rtx_config/ and device headers are injected into cmsis_rtx.
+    // lwipopts.h lives in lwip_config/ (board-specific configuration).
+    // CMSIS-RTOS2 headers (cmsis_os2.h) and core headers (__get_IPSR) are needed
+    // by lwip/src/sys_arch.c which uses CMSIS-RTOS2 API.
+    const lwip_config_path = b.path("lwip_config");
+    const cmsis_core_inc   = cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/core/include");
+    const cmsis_rtos2_inc  = cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/rtos2/include");
+    lwip_lib.root_module.addIncludePath(lwip_config_path);
+    lwip_lib.root_module.addIncludePath(cmsis_rtos2_inc);
+    lwip_lib.root_module.addIncludePath(cmsis_core_inc);
+    lwip_lib.root_module.addImport("cmsis_rtx", cmsis_rtx_mod);
+    lwip_mod.addIncludePath(lwip_config_path);
+    lwip_mod.addIncludePath(cmsis_rtos2_inc);
+    lwip_mod.addIncludePath(cmsis_core_inc);
+    lwip_mod.addImport("cmsis_rtx", cmsis_rtx_mod);
+
     // Create a Zig module for board-specific code (Zig only, no C files)
     const board = b.addModule("board", .{
         .root_source_file = b.path("src/board.zig"),
@@ -96,6 +113,7 @@ pub fn build(b: *std.Build) void {
     board.addIncludePath(cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/rtos2/include"));
     board.addIncludePath(mcux_component.artifact("mcux-component").getEmittedIncludeTree().path(b, "mcux-component/include"));
     board.addIncludePath(lwip_lib.getEmittedIncludeTree().path(b, "lwip/include"));
+    board.addIncludePath(lwip_config_path);
 
     // Create a static library for C board support files
     // This library contains only C code and assembly, no Zig root module
@@ -148,6 +166,7 @@ pub fn build(b: *std.Build) void {
     lib.root_module.addIncludePath(cmsis_6.artifact("CMSIS_6").getEmittedIncludeTree().path(b, "cmsis_6/rtos2/include"));
     lib.root_module.addIncludePath(mcux_component.artifact("mcux-component").getEmittedIncludeTree().path(b, "mcux-component/include"));
     lib.root_module.addIncludePath(lwip_lib.getEmittedIncludeTree().path(b, "lwip/include"));
+    lib.root_module.addIncludePath(lwip_config_path);
 
     // Link device-specific libraries (contains fsl_clock.c and device drivers)
     lib.root_module.linkLibrary(mcux_devices_mcx.artifact("mcux-devices-mcx"));

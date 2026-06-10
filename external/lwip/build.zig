@@ -21,6 +21,7 @@ pub fn build(b: *std.Build) void {
         .name = "lwip",
         .linkage = .static,
         .root_module = b.createModule(.{
+            .root_source_file = b.path("src/sys_arch.zig"),
             .target = target,
             .optimize = optimize,
         }),
@@ -117,6 +118,9 @@ pub fn build(b: *std.Build) void {
         .flags = c_flags,
     });
 
+    // sys_arch is provided by the Zig module (src/sys_arch.zig), not a C file.
+    // Consumer must inject before building (see lwip module comment below).
+
     // =========================================================================
     // Include paths
     // =========================================================================
@@ -125,7 +129,8 @@ pub fn build(b: *std.Build) void {
     lib.root_module.addIncludePath(b.path("lwip/src/include"));
     // picolibc for stdint.h, string.h, etc.
     lib.root_module.addIncludePath(b.path("../picolibc/include"));
-    // lwipopts.h and cc.h live here (project-specific configuration)
+    // arch/cc.h and arch/sys_arch.h live here.
+    // lwipopts.h is NOT here — it must be injected by the consumer (board).
     lib.root_module.addIncludePath(b.path("src"));
 
     // =========================================================================
@@ -137,20 +142,26 @@ pub fn build(b: *std.Build) void {
         "lwip/include",
         .{ .include_extensions = &.{".h"} },
     );
-    // Export lwipopts.h and arch/cc.h (recursively includes arch/ subdir)
+    // Export arch/cc.h and arch/sys_arch.h. lwipopts.h is board-owned and
+    // not exported from here — the board re-exports it via its own install step.
     lib.installHeadersDirectory(
-        b.path("src"),
-        "lwip/include",
+        b.path("src/arch"),
+        "lwip/include/arch",
         .{ .include_extensions = &.{".h"} },
     );
 
     b.installArtifact(lib);
 
     // =========================================================================
-    // Zig module (thin wrapper for @cImport of lwIP headers from Zig)
+    // Zig module — root is sys_arch.zig which re-exports the lwIP C API and
+    // provides all sys_arch symbols.  Consumer must inject before build:
+    //   lwip_mod.addImport("cmsis_rtx", cmsis_rtx_mod)
+    //   lwip_mod.addIncludePath(<board>/lwip_config/)     -- lwipopts.h
+    //   lwip_mod.addIncludePath(<cmsis_6>/rtos2/include)  -- cmsis_os2.h
+    //   lwip_mod.addIncludePath(<cmsis_6>/core/include)   -- __get_IPSR
     // =========================================================================
     const mod = b.addModule("lwip", .{
-        .root_source_file = b.path("src/root.zig"),
+        .root_source_file = b.path("src/sys_arch.zig"),
         .target = target,
         .optimize = optimize,
     });
