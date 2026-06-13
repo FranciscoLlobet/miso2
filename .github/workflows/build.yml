@@ -1,0 +1,27 @@
+name: Zig build
+
+on:
+  push:
+    branches: [ $default-branch ]
+  pull_request:
+    branches: [ $default-branch ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: true
+        lfs: true
+
+    - name: Install uv
+      uses: astral-sh/setup-uv
+
+    - name: Setup python Install
+      run : uv python Install
+
+    - name: Compile picolibx
+      run: ./scripts/build-picolibc.sh
