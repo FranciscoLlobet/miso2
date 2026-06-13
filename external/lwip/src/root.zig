@@ -14,4 +14,6 @@ pub const c = @cImport({
     @cInclude("lwip/udp.h");
     @cInclude("netif/ethernet.h");
     @cInclude("lwip/etharp.h");
+    @cInclude("lwip/sockets.h");
+    @cInclude("lwip/netdb.h");
 });

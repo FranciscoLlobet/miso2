@@ -1,5 +1,9 @@
+const std = @import("std");
 const board = @import("board");
 const rtx = @import("cmsis_rtx");
+const connection = @import("connection.zig");
+const simpleConnection = @import("simpleConnection.zig");
+const ntp = @import("ntp.zig");
 
 const JobQueue = rtx.JobQueue;
 const JobMsg = rtx.JobMsg;
@@ -11,14 +15,6 @@ var jobQueue = JobQueue(
     .osPriorityAboveNormal,
     10,
 ).default();
-
-// =========================================================================
-// lwIP sys_now() — millisecond clock for timeout management (NO_SYS=1).
-// Incremented by POLL_MS on each polling iteration.
-// =========================================================================
-
-// netif must outlive all lwIP usage; netif_add initialises it fully.
-export var dhcp: board.c.dhcp = undefined;
 
 //fn
 const mainRunType = struct {
@@ -128,6 +124,10 @@ const mainRunType = struct {
             //    _ = board.c.printf("DHCP bound: %s\r\n", board.c.ipaddr_ntoa(board.netif.getReference().ip_addr));
             //}
             _ = getHostByName(@constCast("pool.ntp.org"));
+
+            const ntp_uri: std.Uri = std.Uri.parse("pool.ntp.org") catch unreachable;
+
+            _ = ntp.getTimeFromServer(ntp_uri) catch {};
 
             const now = kernel.getTickCount();
             if (now -% last_print_ms >= 1000) {

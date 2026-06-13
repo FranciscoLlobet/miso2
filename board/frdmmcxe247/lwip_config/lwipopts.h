@@ -11,6 +11,11 @@
 #ifndef LWIPOPTS_H
 #define LWIPOPTS_H
 
+#ifndef _WINT_T
+#define _WINT_T
+typedef unsigned int wint_t;
+#endif
+
 #define ETH_LINK_POLLING_INTERVAL_MS 1500U
 #define ETH_MAX_RX_PKTS_AT_ONCE 0U
 #define ETH_USE_GPIO_ADAPTER 1
