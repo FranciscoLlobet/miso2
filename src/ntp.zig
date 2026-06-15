@@ -146,16 +146,19 @@ const sntp_v4_packet = packed struct {
     transmit_timestamp_fraction: u32,
 
     pub fn createRequest(
-        self: *@This(),
         originate_timestamp_s: u32,
         originate_timestamp_frac: u32,
-    ) !void {
-        // Zero the packet using memory magic
-        @memset(self.slice(), 0);
+    ) @This() {
+        var packet: @This() = undefined;
 
-        self.leap_version_mode = @intFromEnum(client_request.request_v4);
-        self.transmit_timestamp_seconds = @byteSwap(originate_timestamp_s);
-        self.transmit_timestamp_fraction = @byteSwap(originate_timestamp_frac);
+        // Zero the packet using memory magic
+        @memset(@as([*]u8, @ptrCast(&packet))[0..@sizeOf(@This())], 0);
+
+        packet.leap_version_mode = @intFromEnum(client_request.request_v4);
+        packet.transmit_timestamp_seconds = @byteSwap(originate_timestamp_s);
+        packet.transmit_timestamp_fraction = @byteSwap(originate_timestamp_frac);
+
+        return packet;
     }
 
     /// Convert the packet to a slice of bytes.
@@ -229,8 +232,6 @@ fn send(c: *@TypeOf(conn), packet: *sntp_v4_packet) !void {
 pub fn getTimeFromServer(uri: std.Uri) !ntp_response {
     try conn.init();
 
-    var packet: sntp_v4_packet = undefined;
-
     const originate_timestamp_s: u32 = 0; // system.time.getNtpTime();
     const originate_timestamp_frac: u32 = 0;
 
@@ -238,8 +239,7 @@ pub fn getTimeFromServer(uri: std.Uri) !ntp_response {
     defer {
         conn.close() catch {};
     }
-
-    try packet.createRequest(
+    var packet = sntp_v4_packet.createRequest(
         originate_timestamp_s,
         originate_timestamp_frac,
     );

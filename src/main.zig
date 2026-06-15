@@ -163,16 +163,14 @@ const mainRunType = struct {
 
                         _ = board.c.printf("NTP Sync: %u\r\n", self.?.ntpSyncTime);
 
-                        self.?.ntpTimer.start(nextSyncTime) catch {};
+                        self.?.ntpTimer.start(nextSyncTime) catch unreachable;
 
                         //self.state = .perform_firmware_download;
                     } else |_| {
-                        self.?.ntpTimer.start(16000);
+                        self.?.ntpTimer.start(16000) catch unreachable;
                     }
                 }
             }
-
-            //_ = getHostByName(@constCast("pool.ntp.org"));
 
             const now = kernel.getTickCount();
             if (now -% last_print_ms >= 1000) {
