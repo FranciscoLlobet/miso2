@@ -16,6 +16,11 @@
 typedef unsigned int wint_t;
 #endif
 
+/* Picolibc's errno is TLS-based and requires RTX5 libspace per thread.
+ * Rather than enlarging libspace or pulling in TLS, bypass errno entirely.
+ * All lwIP callers in this project check return values, not errno. */
+#define set_errno(n) ((void)(n))
+
 #define ETH_LINK_POLLING_INTERVAL_MS 1500U
 #define ETH_MAX_RX_PKTS_AT_ONCE 0U
 #define ETH_USE_GPIO_ADAPTER 1

@@ -31,20 +31,20 @@ const rtx = @import("cmsis_rtx");
 //   const lwip = @import("lwip");  lwip.c.lwip_init();
 pub const c = @import("root.zig").c;
 
-const mu  = rtx.mutex;
+const mu = rtx.mutex;
 const sem = rtx.semaphore;
-const mq  = rtx.messageQueue;
-const th  = rtx.thread;
+const mq = rtx.messageQueue;
+const th = rtx.thread;
 
-const ERR_OK: i8  = 0;
+const ERR_OK: i8 = 0;
 const ERR_MEM: i8 = -1;
 const SYS_ARCH_TIMEOUT: u32 = 0xffffffff;
-const SYS_MBOX_EMPTY: u32   = 0xffffffff;
+const SYS_MBOX_EMPTY: u32 = 0xffffffff;
 
 // ARM Cortex-M IPSR: 0 = thread mode, non-zero = executing in an ISR.
 inline fn getIPSR() u32 {
     return asm volatile ("mrs %[ret], ipsr"
-        : [ret] "=r" (-> u32)
+        : [ret] "=r" (-> u32),
     );
 }
 
@@ -86,13 +86,13 @@ export fn sys_arch_msleep(delay_ms: u32) callconv(.c) void {
 // Semaphore
 // =========================================================================
 export fn sys_sem_new(sem_out: *sem.osSemaphoreId_t, count: u8) callconv(.c) i8 {
-    sem_out.* = sem.osSemaphoreNew(1, @as(u32, count), null);
+    sem_out.* = sem.osSemaphoreNew(255, @as(u32, count), null);
     if (sem_out.* == null) return ERR_MEM;
     return ERR_OK;
 }
 
 export fn sys_arch_sem_wait(sem_id: *sem.osSemaphoreId_t, timeout_ms: u32) callconv(.c) u32 {
-    const t0    = rtx.kernel.getTickCount();
+    const t0 = rtx.kernel.getTickCount();
     const ticks = if (timeout_ms == 0) rtx.osWaitForever else timeout_ms;
     if (sem.osSemaphoreAcquire(sem_id.*, ticks) == 0) {
         const elapsed = rtx.kernel.getTickCount() -% t0;
@@ -114,14 +114,14 @@ export fn sys_sem_free(sem_id: *sem.osSemaphoreId_t) callconv(.c) void {
 // =========================================================================
 export fn sys_mutex_new(mutex_out: *mu.osMutexId_t) callconv(.c) i8 {
     const attr = mu.osMutexAttr_t{
-        .name     = null,
+        .name = null,
         .attr_bits = mu.osMutexPrioInherit,
-        .cb_mem   = null,
-        .cb_size  = 0,
+        .cb_mem = null,
+        .cb_size = 0,
     };
     mutex_out.* = mu.osMutexNew(&attr);
-    if (mutex_out.* == null) return ERR_MEM;
-    return ERR_OK;
+
+    return if (mutex_out.* == null) ERR_MEM else ERR_OK;
 }
 
 export fn sys_mutex_lock(mutex_id: *mu.osMutexId_t) callconv(.c) void {
@@ -141,20 +141,25 @@ export fn sys_mutex_free(mutex_id: *mu.osMutexId_t) callconv(.c) void {
 // =========================================================================
 export fn sys_mbox_new(mbox_out: *mq.osMessageQueueId_t, size: c_int) callconv(.c) i8 {
     mbox_out.* = mq.osMessageQueueNew(@intCast(size), @sizeOf(?*anyopaque), null);
-    if (mbox_out.* == null) return ERR_MEM;
-    return ERR_OK;
+
+    return if (mbox_out.* == null) ERR_MEM else ERR_OK;
 }
 
 export fn sys_mbox_post(mbox_id: *mq.osMessageQueueId_t, msg: ?*anyopaque) callconv(.c) void {
     var local: ?*anyopaque = msg;
+
     _ = mq.osMessageQueuePut(mbox_id.*, @as(?*anyopaque, @ptrCast(&local)), 0, rtx.osWaitForever);
 }
 
 export fn sys_mbox_trypost(mbox_id: *mq.osMessageQueueId_t, msg: ?*anyopaque) callconv(.c) i8 {
     var local: ?*anyopaque = msg;
-    if (mq.osMessageQueuePut(mbox_id.*, @as(?*anyopaque, @ptrCast(&local)), 0, 0) == 0)
-        return ERR_OK;
-    return ERR_MEM;
+
+    return if (0 == mq.osMessageQueuePut(
+        mbox_id.*,
+        @as(?*anyopaque, @ptrCast(&local)),
+        0,
+        0,
+    )) ERR_OK else ERR_MEM;
 }
 
 export fn sys_mbox_trypost_fromisr(mbox_id: *mq.osMessageQueueId_t, msg: ?*anyopaque) callconv(.c) i8 {
@@ -164,21 +169,31 @@ export fn sys_mbox_trypost_fromisr(mbox_id: *mq.osMessageQueueId_t, msg: ?*anyop
 export fn sys_arch_mbox_fetch(mbox_id: *mq.osMessageQueueId_t, msg: ?*?*anyopaque, timeout_ms: u32) callconv(.c) u32 {
     var dummy: ?*anyopaque = null;
     const dst: *?*anyopaque = msg orelse &dummy;
-    const t0    = rtx.kernel.getTickCount();
+
+    const t0 = rtx.kernel.getTickCount();
+
     const ticks = if (timeout_ms == 0) rtx.osWaitForever else timeout_ms;
+
     if (mq.osMessageQueueGet(mbox_id.*, @as(?*anyopaque, @ptrCast(dst)), null, ticks) == 0) {
         const elapsed = rtx.kernel.getTickCount() -% t0;
+
         return if (elapsed == 0) 1 else elapsed;
     }
+
     if (msg) |m| m.* = null;
+
     return SYS_ARCH_TIMEOUT;
 }
 
 export fn sys_arch_mbox_tryfetch(mbox_id: *mq.osMessageQueueId_t, msg: ?*?*anyopaque) callconv(.c) u32 {
     var dummy: ?*anyopaque = null;
     const dst: *?*anyopaque = msg orelse &dummy;
-    if (mq.osMessageQueueGet(mbox_id.*, @as(?*anyopaque, @ptrCast(dst)), null, 0) == 0) return 0;
-    return SYS_MBOX_EMPTY;
+    return if (0 == mq.osMessageQueueGet(
+        mbox_id.*,
+        @as(?*anyopaque, @ptrCast(dst)),
+        null,
+        0,
+    )) 0 else SYS_MBOX_EMPTY;
 }
 
 export fn sys_mbox_free(mbox_id: *mq.osMessageQueueId_t) callconv(.c) void {
@@ -189,21 +204,21 @@ export fn sys_mbox_free(mbox_id: *mq.osMessageQueueId_t) callconv(.c) void {
 // Thread
 // =========================================================================
 export fn sys_thread_new(
-    name:       [*:0]const u8,
-    thread_fn:  ?*const fn (?*anyopaque) callconv(.c) void,
-    arg:        ?*anyopaque,
+    name: [*:0]const u8,
+    thread_fn: ?*const fn (?*anyopaque) callconv(.c) void,
+    arg: ?*anyopaque,
     stack_size: c_int,
-    prio:       c_int,
+    prio: c_int,
 ) callconv(.c) th.osThreadId_t {
     const attr = th.osThreadAttr_t{
-        .name         = name,
-        .attr_bits    = 0,
-        .cb_mem       = null,
-        .cb_size      = 0,
-        .stack_mem    = null,
-        .stack_size   = @intCast(stack_size),
-        .priority     = @intFromEnum(th.osThreadPriority.osPriorityNormal) + @as(i32, prio),
-        .tz_module    = 0,
+        .name = name,
+        .attr_bits = 0,
+        .cb_mem = null,
+        .cb_size = 0,
+        .stack_mem = null,
+        .stack_size = @intCast(stack_size),
+        .priority = @intFromEnum(th.osThreadPriority.osPriorityNormal) + @as(i32, prio),
+        .tz_module = 0,
         .affinity_mask = 0,
     };
     return th.osThreadNew(@ptrCast(thread_fn), arg, &attr);
@@ -212,9 +227,9 @@ export fn sys_thread_new(
 // =========================================================================
 // Core locking (LWIP_TCPIP_CORE_LOCKING=1)
 // =========================================================================
-var lwip_core_lock_count:  u8              = 0;
+var lwip_core_lock_count: u8 = 0;
 var lwip_core_lock_holder: th.osThreadId_t = null;
-var lwip_tcpip_thread:     th.osThreadId_t = null;
+var lwip_tcpip_thread: th.osThreadId_t = null;
 
 export fn sys_lock_tcpip_core() callconv(.c) void {
     _ = mu.osMutexAcquire(lock_tcpip_core, rtx.osWaitForever);
@@ -225,7 +240,8 @@ export fn sys_lock_tcpip_core() callconv(.c) void {
 }
 
 export fn sys_unlock_tcpip_core() callconv(.c) void {
-    lwip_core_lock_count -= 1;
+    lwip_core_lock_count -= if (lwip_core_lock_count == 0) 0 else 1;
+
     if (lwip_core_lock_count == 0) {
         lwip_core_lock_holder = null;
     }

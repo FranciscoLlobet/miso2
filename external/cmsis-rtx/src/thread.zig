@@ -180,14 +180,16 @@ pub inline fn flagsGet() osError!u32 {
 }
 
 /// Wait for current flags
-pub inline fn flagsWait(flags: u32, options: osFlagsOptions, timeout: u32) osError!u32 {
-    return osFlagsErrorMap(
-        osThreadFlagsWait(
-            flags,
-            @intFromEnum(options),
-            timeout,
-        ),
-    );
+pub inline fn flagsWait(flags: u32, options: osFlagsOptions, timeout: u32) osError!?u32 {
+    const val = osFlagsErrorMap(osThreadFlagsWait(
+        flags,
+        @intFromEnum(options),
+        timeout,
+    )) catch |err| return switch (err) {
+        osError.osErrorTimeout, osError.osErrorResource => null,
+        else => err,
+    };
+    return val;
 }
 
 pub inline fn feedWatchdog(ticks: u32) osError!void {
@@ -272,7 +274,7 @@ pub fn StaticThread(
         pub fn flagsGet(_: *const @This()) osError!u32 {
             return thread.flagsGet();
         }
-        pub fn flagsWait(_: *const @This(), flags: u32, options: osFlagsOptions, timeout: u32) osError!u32 {
+        pub fn flagsWait(_: *const @This(), flags: u32, options: osFlagsOptions, timeout: u32) osError!?u32 {
             return thread.flagsWait(
                 flags,
                 options,

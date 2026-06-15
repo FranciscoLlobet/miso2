@@ -115,6 +115,6 @@
 #define OS_EVR_MSGQUEUE             1
 
 /* Libspace threads (required by upstream when OS_THREAD_OBJ_MEM == 0) */
-#define OS_THREAD_LIBSPACE_NUM      4
+#define OS_THREAD_LIBSPACE_NUM      10
 
 #endif /* RTX_CONFIG_H_ */

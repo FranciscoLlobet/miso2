@@ -91,15 +91,17 @@ pub fn LwipConnection(comptime proto: connection.proto) type {
     return struct {
         proto: connection.proto = proto,
         sd: c_int,
-        peer: if (proto.isIp6()) ipv6Peer else ipv4Peer,
-        local: if (proto.isIp6()) ipv6Peer else ipv4Peer,
+        peer: ipv4Peer,
+        local: ipv4Peer,
+
+        const connType = @This();
 
         pub fn create() @This() {
             return .{
                 .proto = proto,
                 .sd = INVALID_SOCKET,
-                .peer = @TypeOf(@This().peer).create(0, 0),
-                .local = @TypeOf(@This().local).create(0, 0),
+                .peer = ipv4Peer.create(0, 0),
+                .local = ipv4Peer.create(0, 0),
             };
         }
 
@@ -110,11 +112,14 @@ pub fn LwipConnection(comptime proto: connection.proto) type {
         pub fn deinit(_: *@This()) !void {}
 
         pub fn open(self: *@This(), uri: std.Uri, local_port: ?u16) !void {
-            const host_component = uri.host orelse return conn_error.dns;
+            self.sd = INVALID_SOCKET;
+
+            const host_component = uri.host.?;
+            const port = uri.port.?;
+
             const host_str = switch (host_component) {
                 .raw, .percent_encoded => |s| s,
             };
-            const port = uri.port orelse return conn_error.dns;
 
             // Null-terminate the host string for netconn_gethostbyname.
             var host_buf: [256]u8 = undefined;
@@ -131,11 +136,8 @@ pub fn LwipConnection(comptime proto: connection.proto) type {
             // ip_addr.u_addr.ip4.addr is already in network byte order,
             // matching what sockaddr_in.sin_addr.s_addr expects.
             self.peer = @TypeOf(self.peer).create(0, port);
-            if (comptime proto.isIp6()) {
-                self.peer.addr.sin6_addr = ip_addr.u_addr.ip6;
-            } else {
-                self.peer.addr.sin_addr.s_addr = ip_addr.addr;
-            }
+
+            self.peer.addr.sin_addr.s_addr = ip_addr.addr;
 
             try self.openSocket();
             errdefer self.close() catch {};
@@ -198,6 +200,7 @@ pub fn LwipConnection(comptime proto: connection.proto) type {
 
         pub fn close(self: *@This()) !void {
             defer self.sd = INVALID_SOCKET;
+            //if (self.sd < 0) return;
             if (c.lwip_close(self.sd) != 0) {
                 return conn_error.close_error;
             }

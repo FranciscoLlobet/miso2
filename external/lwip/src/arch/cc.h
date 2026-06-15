@@ -27,6 +27,8 @@
  * the thread-local storage variant; let lwIP manage its own errno copy. */
 #define LWIP_PROVIDE_ERRNO 1
 
+//extern void set_errno(int err);
+
 /* GCC/Clang handle packed structs natively; no wrapper needed */
 /* PACK_STRUCT_STRUCT, PACK_STRUCT_BEGIN, PACK_STRUCT_END default to GCC attrs */
 #define PACK_STRUCT_BEGIN

@@ -61,14 +61,14 @@ const secure_bit: u32 = (1 << 3);
 /// New protocol Enum
 pub const proto = enum(u32) {
     no_protocol = 0,
-    udp_ip4 = protocol_bit | udp_tcp_bit,
-    tcp_ip4 = protocol_bit,
-    udp_ip6 = protocol_bit | ip4_ip6_bit | udp_tcp_bit,
-    tcp_ip6 = protocol_bit | ip4_ip6_bit,
-    dtls_ip4 = protocol_bit | secure_bit | udp_tcp_bit,
-    tls_ip4 = protocol_bit | secure_bit,
-    dtls_ip6 = protocol_bit | secure_bit | ip4_ip6_bit | udp_tcp_bit,
-    tls_ip6 = protocol_bit | secure_bit | ip4_ip6_bit,
+    udp_ip4 = protocol_bit,
+    tcp_ip4 = protocol_bit | udp_tcp_bit,
+    udp_ip6 = protocol_bit | ip4_ip6_bit,
+    tcp_ip6 = protocol_bit | ip4_ip6_bit | udp_tcp_bit,
+    dtls_ip4 = protocol_bit | secure_bit,
+    tls_ip4 = protocol_bit | secure_bit | udp_tcp_bit,
+    dtls_ip6 = protocol_bit | secure_bit | ip4_ip6_bit,
+    tls_ip6 = protocol_bit | secure_bit | udp_tcp_bit | ip4_ip6_bit,
 
     /// Is the protocol secure
     pub fn isSecure(self: @This()) bool {
@@ -80,11 +80,11 @@ pub const proto = enum(u32) {
     }
     /// Is the protocol TCP
     pub fn isTcp(self: @This()) bool {
-        return (@intFromEnum(self) & udp_tcp_bit) == 0;
+        return (@intFromEnum(self) & udp_tcp_bit) != 0;
     }
     /// Is the protocol UDP
     pub fn isUdp(self: @This()) bool {
-        return (@intFromEnum(self) & udp_tcp_bit) != 0;
+        return (@intFromEnum(self) & udp_tcp_bit) == 0;
     }
     /// Is the protocol DTLS
     pub fn isDtls(self: @This()) bool {
@@ -172,8 +172,9 @@ pub fn Connection(comptime sslType: type) type {
         ssl: sslType,
 
         /// Initialize the connection
-        pub fn init(self: *@This()) void {
-            _ = self;
+        pub fn init(self: *@This()) !void {
+            self.ssl = @TypeOf(self.ssl).create();
+            try self.ssl.init();
         }
         pub fn open(self: *@This(), uri: std.Uri, local_port: ?u16) !void {
             try self.ssl.open(uri, local_port);

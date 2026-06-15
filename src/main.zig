@@ -20,14 +20,43 @@ var jobQueue = JobQueue(
 const mainRunType = struct {
     thread: rtx.StaticThread(
         @This(),
-        16000,
+        24000,
         "main",
         runner,
     ),
 
+    //    ntpResponse: ntp.ntp_response,
+    ntpSyncTime: u32,
+
+    ntpTimer: rtx.StaticTimer(
+        @This(),
+        "ntpTimer",
+        ntp_trigger,
+    ),
+
+    pub const mainEvents = enum(u32) {
+        trigger_ntp = 1 << 1,
+        ntp_aquired = 1 << 2,
+    };
+
+    pub fn ntp_trigger(self: *@This()) void {
+        _ = self.thread.flagsSet(@intFromEnum(mainEvents.trigger_ntp)) catch {};
+    }
+
     pub fn new(self: *@This()) rtx.osError!void {
-        try self.thread.new(self, 0, .osPriorityNormal);
         try board.lpuart2.initialize();
+
+        try self.thread.new(
+            self,
+            0,
+            .osPriorityNormal,
+        );
+
+        try self.ntpTimer.new(
+            .osTimerPeriodic,
+            self,
+            0,
+        );
     }
 
     fn tcpip_init_done(arg: ?*anyopaque) callconv(.c) void {
@@ -46,12 +75,12 @@ const mainRunType = struct {
 
     fn runner(self: ?*@This()) void {
         //_ = self;
+        self.?.ntpSyncTime = 0;
+
         board.lpuart2.write("MISO2 starting\r\n") catch {};
 
-        // ---------------------------------------------------------------
-        // ENET hardware setup — must happen before ethernetif0_init calls
-        // PHY_Init() which requires MDIO to be operational.
-        // ENET uses the bus clock (48 MHz) directly; no CLOCK_SetIpSrc needed.
+        const ntp_uri: std.Uri = std.Uri.parse("ntp://pool.ntp.org:123") catch unreachable;
+
         // ---------------------------------------------------------------
 
         // Use unique per-device MAC address derived from silicon ID.
@@ -87,6 +116,7 @@ const mainRunType = struct {
         )) {
             //
         }
+        self.?.ntpTimer.start(16000) catch unreachable;
 
         board.netif.dhcp_start();
 
@@ -119,15 +149,30 @@ const mainRunType = struct {
 
             // periodic state
 
-            //if (!dhcp_bound and board.c.dhcp_supplied_address(board.netif.getReference()) != 0) {
-            //    dhcp_bound = true;
-            //    _ = board.c.printf("DHCP bound: %s\r\n", board.c.ipaddr_ntoa(board.netif.getReference().ip_addr));
-            //}
-            _ = getHostByName(@constCast("pool.ntp.org"));
+            if (self.?.thread.flagsWait(0x7FFFFFFF, .osFlagsWaitAny, rtx.osWaitNever) catch null) |flags| {
 
-            const ntp_uri: std.Uri = std.Uri.parse("pool.ntp.org") catch unreachable;
+                // Get the NTP trigger
+                if (0 != (flags & @intFromEnum(mainEvents.trigger_ntp))) {
+                    self.?.ntpTimer.stop() catch {};
 
-            _ = ntp.getTimeFromServer(ntp_uri) catch {};
+                    if (ntp.getTimeFromServer(ntp_uri)) |ntpResponse| {
+                        self.?.ntpSyncTime = ntpResponse.timestamp_s;
+
+                        // Calculate the next time to sync
+                        const nextSyncTime: u32 = if (ntpResponse.poll_interval > 60 * 60) @as(u32, 60 * 60 * 1000) else ntpResponse.poll_interval * 1000;
+
+                        _ = board.c.printf("NTP Sync: %u\r\n", self.?.ntpSyncTime);
+
+                        self.?.ntpTimer.start(nextSyncTime) catch {};
+
+                        //self.state = .perform_firmware_download;
+                    } else |_| {
+                        self.?.ntpTimer.start(16000);
+                    }
+                }
+            }
+
+            //_ = getHostByName(@constCast("pool.ntp.org"));
 
             const now = kernel.getTickCount();
             if (now -% last_print_ms >= 1000) {

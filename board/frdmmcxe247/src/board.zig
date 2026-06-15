@@ -119,6 +119,61 @@ const __stdio = stdio.SerialStdio(
     &lpuart2,
 ).default();
 
+export fn HardFault_Handler() callconv(.naked) void {
+    asm volatile (
+        \\ tst   lr, #4
+        \\ ite   eq
+        \\ mrseq r0, msp
+        \\ mrsne r0, psp
+        \\ mov   r1, lr
+        \\ b     hardFaultDispatch
+    );
+}
+
+const HardFaultInfo = struct {
+    // stacked frame
+    r0: u32,
+    r1: u32,
+    r2: u32,
+    r3: u32,
+    r12: u32,
+    lr: u32,
+    pc: u32,
+    xpsr: u32,
+    // fault registers
+    cfsr: u32,
+    hfsr: u32,
+    mmfar: u32,
+    bfar: u32,
+    exc_return: u32,
+};
+
+var fault_info: HardFaultInfo = undefined;
+
+export fn hardFaultDispatch(sp: [*]u32, exc_return: u32) callconv(.c) noreturn {
+    fault_info = .{
+        .r0 = sp[0],
+        .r1 = sp[1],
+        .r2 = sp[2],
+        .r3 = sp[3],
+        .r12 = sp[4],
+        .lr = sp[5],
+        .pc = sp[6],
+        .xpsr = sp[7],
+        .cfsr = @as(*u32, @ptrFromInt(0xE000ED28)).*,
+        .hfsr = @as(*u32, @ptrFromInt(0xE000ED2C)).*,
+        .mmfar = @as(*u32, @ptrFromInt(0xE000ED34)).*,
+        .bfar = @as(*u32, @ptrFromInt(0xE000ED38)).*,
+        .exc_return = exc_return,
+    };
+
+    @breakpoint(); // halts under a debugger, falls through to loop otherwise
+    while (true) {}
+}
+
 export const stdout = &__stdio;
 export const stdin = &__stdio;
 
+//export fn set_errno(_: c_int) callconv(.c) void {
+//    unreachable;
+//}

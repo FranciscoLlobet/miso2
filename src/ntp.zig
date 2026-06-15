@@ -1,4 +1,4 @@
-// Copyright (c) 2023-2024 Francisco Llobet-Blandino and the "Miso Project".
+// Copyright (c) 2023-2026 Francisco Llobet-Blandino and the "Miso Project".
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the “Software”), to deal
@@ -227,7 +227,7 @@ fn send(c: *@TypeOf(conn), packet: *sntp_v4_packet) !void {
 /// Get the current time from an sNTP server using the given URI.
 ///
 pub fn getTimeFromServer(uri: std.Uri) !ntp_response {
-    //conn.init();
+    try conn.init();
 
     var packet: sntp_v4_packet = undefined;
 
@@ -239,7 +239,10 @@ pub fn getTimeFromServer(uri: std.Uri) !ntp_response {
         conn.close() catch {};
     }
 
-    try packet.createRequest(originate_timestamp_s, originate_timestamp_frac);
+    try packet.createRequest(
+        originate_timestamp_s,
+        originate_timestamp_frac,
+    );
 
     try send(&conn, &packet);
 
@@ -247,7 +250,10 @@ pub fn getTimeFromServer(uri: std.Uri) !ntp_response {
 
     _ = try conn.recieve(packet.slice());
 
-    const server_time = try packet.process_server_packet(originate_timestamp_s, originate_timestamp_frac);
+    const server_time = try packet.process_server_packet(
+        originate_timestamp_s,
+        originate_timestamp_frac,
+    );
 
     //try system.time.setTimeFromNtp(server_time.timestamp_s);
 
