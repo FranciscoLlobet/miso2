@@ -37,4 +37,4 @@ jobs:
       run: ./scripts/build-picolibc.sh
 
     - name: Compile project
-      run: uv run zig build
+      run: uv run python-zig build
