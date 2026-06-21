@@ -1,10 +1,6 @@
 name: Zig build
 
-on:
-  push:
-    branches: [ $default-branch ]
-  pull_request:
-    branches: [ $default-branch ]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -32,3 +28,6 @@ jobs:
 
     - name: Compile picolibx
       run: ./scripts/build-picolibc.sh
+
+    - name: Compile project
+      run: uv run ziglang build
