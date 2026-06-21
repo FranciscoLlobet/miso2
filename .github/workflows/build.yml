@@ -33,8 +33,8 @@ jobs:
       run : |
         sudo apt-get install -y gcc-arm-none-eabi clang-format
 
-    - name: Compile picolibx
+    - name: Compile picolibc
       run: ./scripts/build-picolibc.sh
 
     - name: Compile project
-      run: uv run ziglang build
+      run: uv run zig build
