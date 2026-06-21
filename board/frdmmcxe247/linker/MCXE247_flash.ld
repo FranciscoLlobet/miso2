@@ -33,8 +33,8 @@ MEMORY
   m_interrupts          (RX)  : ORIGIN = 0x00000000, LENGTH = 0x00000400
   m_flash_config        (RX)  : ORIGIN = 0x00000400, LENGTH = 0x00000010
   m_text                (RX)  : ORIGIN = 0x00000410, LENGTH = 0x0017FBF0
-  m_data                (RW)  : ORIGIN = 0x1FFE0000, LENGTH = 0x00020000
-  m_data_2              (RW)  : ORIGIN = 0x20000000, LENGTH = 0x0001F000
+  m_data                (RW)  : ORIGIN = 0x1FFE0000, LENGTH = 0x0003F000
+  m_data_2              (RW)  : ORIGIN = 0x2001F000, LENGTH = 0x00000000
 }
 
 /* Define output sections */
@@ -188,16 +188,16 @@ SECTIONS
     . += HEAP_SIZE;
     __HeapLimit = .;
     __heap_limit = .; /* Add for _sbrk */
-  } > m_data_2
+  } > m_data
 
   .stack :
   {
     . = ALIGN(8);
     . += STACK_SIZE;
-  } > m_data_2
+  } > m_data
 
   /* Initializes stack on the end of block */
-  __StackTop   = ORIGIN(m_data_2) + LENGTH(m_data_2);
+  __StackTop   = ORIGIN(m_data) + LENGTH(m_data);
   __StackLimit = __StackTop - STACK_SIZE;
   PROVIDE(__stack = __StackTop);
 

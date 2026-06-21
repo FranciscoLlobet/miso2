@@ -20,6 +20,11 @@ const osErrorMap = core.osErrorMap;
 pub const osMessageQueueAttr_t = c.osMessageQueueAttr_t;
 pub const osMessageQueueId_t = c.osMessageQueueId_t;
 
+pub const osMessageQueueNew = c.osMessageQueueNew;
+pub const osMessageQueuePut = c.osMessageQueuePut;
+pub const osMessageQueueGet = c.osMessageQueueGet;
+pub const osMessageQueueDelete = c.osMessageQueueDelete;
+
 fn messageQueueMemSize(comptime msg_count: usize, comptime msg_size: usize) usize {
     return @intCast((4 * @as(u32, @intCast(msg_count))) * (3 + ((@as(u32, @intCast(msg_size)) + 3) / 4)));
 }

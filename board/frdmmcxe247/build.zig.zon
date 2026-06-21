@@ -36,13 +36,19 @@
             .path = "../../external/cmsis_6",
         },
         .cmsis_rtx = .{
-            .path = "../../external/cmsis_rtx",
+            .path = "../../external/cmsis-rtx",
         },
         .mcuxsdk_core = .{
             .path = "../../external/mcuxsdk-core",
         },
         .mcux_devices_mcx = .{
             .path = "../../external/mcux-devices-mcx",
+        },
+        .mcux_component = .{
+            .path = "../../external/mcux-component",
+        },
+        .lwip = .{
+            .path = "../../external/lwip",
         },
         // See `zig fetch --save <url>` for a command-line interface for adding dependencies.
         //.example = .{

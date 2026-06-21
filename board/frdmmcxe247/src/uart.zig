@@ -43,7 +43,12 @@ pub fn uart_if(
             try self.tx_flags.new(0);
             try self.tx_mutex.new(rtx.mutex.osMutexPrioInherit);
 
-            c.LPUART_TransferCreateHandle(lpuart_instance, &self.handle, onTxDone, @ptrCast(self));
+            c.LPUART_TransferCreateHandle(
+                lpuart_instance,
+                &self.handle,
+                onTxDone,
+                @ptrCast(self),
+            );
         }
 
         // Registered with LPUART_TransferCreateHandle; called by LPUART_TransferHandleIRQ
@@ -83,9 +88,19 @@ pub fn uart_if(
                 .dataSize = data.len,
             };
 
-            try lpuart_map_error(c.LPUART_TransferSendNonBlocking(lpuart_instance, &self.handle, &xfer));
+            try lpuart_map_error(
+                c.LPUART_TransferSendNonBlocking(
+                    lpuart_instance,
+                    &self.handle,
+                    &xfer,
+                ),
+            );
 
-            _ = try self.tx_flags.wait(UART_EVENT_FLAG_MASK, rtx.eventFlags.osFlagsWaitAny, rtx.osWaitForever);
+            _ = try self.tx_flags.wait(
+                UART_EVENT_FLAG_MASK,
+                rtx.eventFlags.osFlagsWaitAny,
+                rtx.osWaitForever,
+            );
         }
 
         pub fn read(self: *@This(), data: []u8) []u8 {

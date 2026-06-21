@@ -47,6 +47,12 @@ pub fn Kernel(
             return c.osKernelGetTickCount();
         }
 
+        /// Get Kernel Tick frequency
+        pub fn getTickFreq(_: *@This()) u32 {
+            return c.osKernelGetTickFreq();
+        }
+
+        /// Get System timer frequency
         pub fn getSysTimerFreq(_: *@This()) u32 {
             return c.osKernelGetSysTimerFreq();
         }
@@ -96,3 +102,8 @@ pub const Hacks = struct {
         };
     }
 };
+
+/// Get Kernel tick count
+pub fn getTickCount() u32 {
+    return c.osKernelGetTickCount();
+}

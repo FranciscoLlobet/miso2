@@ -34,6 +34,8 @@ pub const osError = error{
 
 pub const osTick = u32;
 
+pub const osOK: u32 = @intCast(c.osOK);
+
 // All basic types that multiple modules need
 pub const osStatus_t = c.osStatus_t;
 pub const osThreadId_t = c.osThreadId_t;

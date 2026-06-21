@@ -1,10 +1,11 @@
-const rtx = @import("cmsis_rtx");
-
-const c = @import("c.zig").c;
+pub const c = @import("c.zig").c;
 const uart = @import("uart.zig");
 const led = @import("led.zig");
 const button = @import("button.zig");
 const runtime = @import("runtime.zig");
+const stdio = @import("stdio.zig");
+
+pub const ethernet = @import("ethernet.zig");
 
 pub fn initPreKernel() void {
     c.BOARD_InitBootPins();
@@ -12,11 +13,39 @@ pub fn initPreKernel() void {
     c.BOARD_InitBootPeripherals();
     c.BOARD_InitLEDsPins();
     c.BOARD_InitBUTTONsPins();
+
+    // Disable the System MPU so the ENET DMA bus master can access SRAM.
+    // By default the SYSMPU restricts non-CPU bus masters (including ENET DMA),
+    // which silently prevents both TX buffer reads and RX buffer writes.
+    c.SYSMPU.*.CESR &= ~c.SYSMPU_CESR_VLD_MASK;
+
+    c.GPIO_PinWrite(
+        c.BOARD_INITENET_MII_RMII_PHY_RST_GPIO,
+        c.BOARD_INITENET_MII_RMII_PHY_RST_PIN,
+        0,
+    );
+
+    c.SDK_DelayAtLeastUs(
+        25000,
+        c.CLOCK_GetFreq(c.kCLOCK_CoreSysClk),
+    );
+
+    c.GPIO_PinWrite(
+        c.BOARD_INITENET_MII_RMII_PHY_RST_GPIO,
+        c.BOARD_INITENET_MII_RMII_PHY_RST_PIN,
+        1,
+    );
 }
 
 pub fn initialize() void {
     button_sw2.init(null) catch unreachable;
     button_sw3.init(null) catch unreachable;
+
+    led_blue.clear();
+    led_green.clear();
+    led_red.clear();
+
+    ethernet.mdio.init();
 
     runtime.hwJobQueue.initialize() catch unreachable;
 }
@@ -82,3 +111,69 @@ pub var button_sw3 = button.Button(
     false,
     10,
 ).default();
+
+pub var netif = ethernet.Netif().default();
+
+const __stdio = stdio.SerialStdio(
+    @TypeOf(lpuart2),
+    &lpuart2,
+).default();
+
+export fn HardFault_Handler() callconv(.naked) void {
+    asm volatile (
+        \\ tst   lr, #4
+        \\ ite   eq
+        \\ mrseq r0, msp
+        \\ mrsne r0, psp
+        \\ mov   r1, lr
+        \\ b     hardFaultDispatch
+    );
+}
+
+const HardFaultInfo = struct {
+    // stacked frame
+    r0: u32,
+    r1: u32,
+    r2: u32,
+    r3: u32,
+    r12: u32,
+    lr: u32,
+    pc: u32,
+    xpsr: u32,
+    // fault registers
+    cfsr: u32,
+    hfsr: u32,
+    mmfar: u32,
+    bfar: u32,
+    exc_return: u32,
+};
+
+var fault_info: HardFaultInfo = undefined;
+
+export fn hardFaultDispatch(sp: [*]u32, exc_return: u32) callconv(.c) noreturn {
+    fault_info = .{
+        .r0 = sp[0],
+        .r1 = sp[1],
+        .r2 = sp[2],
+        .r3 = sp[3],
+        .r12 = sp[4],
+        .lr = sp[5],
+        .pc = sp[6],
+        .xpsr = sp[7],
+        .cfsr = @as(*u32, @ptrFromInt(0xE000ED28)).*,
+        .hfsr = @as(*u32, @ptrFromInt(0xE000ED2C)).*,
+        .mmfar = @as(*u32, @ptrFromInt(0xE000ED34)).*,
+        .bfar = @as(*u32, @ptrFromInt(0xE000ED38)).*,
+        .exc_return = exc_return,
+    };
+
+    @breakpoint(); // halts under a debugger, falls through to loop otherwise
+    while (true) {}
+}
+
+export const stdout = &__stdio;
+export const stdin = &__stdio;
+
+//export fn set_errno(_: c_int) callconv(.c) void {
+//    unreachable;
+//}

@@ -23,17 +23,21 @@ pub const timer = @import("timer.zig");
 pub const mutex = @import("mutex.zig");
 pub const semaphore = @import("semaphore.zig");
 
+pub const messageQueue = @import("messageQueue.zig");
+
 pub const jobQueue = @import("jobQueue.zig");
 
 pub const StaticThread = thread.StaticThread;
 pub const StaticTimer = timer.StaticTimer;
 pub const StaticMutex = mutex.StaticMutex;
 pub const StaticSemaphore = semaphore.StaticSemaphore;
-pub const MessageQueue = @import("messageQueue.zig").MessageQueue;
-pub const StaticMessageQueue = @import("messageQueue.zig").StaticMessageQueue;
+pub const MessageQueue = messageQueue.MessageQueue;
+pub const StaticMessageQueue = messageQueue.StaticMessageQueue;
 
 pub const JobMsg = jobQueue.JobMsg;
 pub const JobQueue = jobQueue.JobQueue;
+
+pub const osOk = core.osOK;
 
 pub const osError = core.osError;
 pub const osFlagsError = core.osFlagsError;
@@ -46,3 +50,4 @@ pub const osDelayUntil = delay.osDelayUntil;
 pub const osWaitForever = core.osWaitForever;
 pub const osWaitNever = core.osWaitNever;
 
+pub const osFlagsOptions = core.osFlagsOptions;
