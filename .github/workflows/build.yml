@@ -29,7 +29,7 @@ jobs:
     - name: Install build deps
       shell: bash
       run : |
-        sudo apt-get install -y gcc-arm-none-eabi clang-format meson
+        sudo apt-get install -y gcc-arm-none-eabi clang-format
 
     - name: Compile picolibx
       run: ./scripts/build-picolibc.sh
