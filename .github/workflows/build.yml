@@ -19,12 +19,17 @@ jobs:
     - name: Setup Python Environment
       shell: bash
       run: |
-        uv python install
+        uv python install      
 
     - name: Prepare Python Environment
       shell: bash
       run : |
         uv sync
+
+    - name: Install build deps
+      shell: bash
+      run : |
+        sudo apt-get install -y gcc-arm-none-eabi clang-format meson
 
     - name: Compile picolibx
       run: ./scripts/build-picolibc.sh
