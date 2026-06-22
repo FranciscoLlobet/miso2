@@ -25,7 +25,6 @@
 //!
 const std = @import("std");
 const connection = @import("connection.zig");
-//const system = @import("system.zig");
 const simpleConnection = @import("simpleConnection.zig");
 
 const sntp_error = error{
@@ -201,12 +200,18 @@ const sntp_v4_packet = packed struct {
         }
 
         // convert the poll interval response and conver it to a seconds value
-        const next_poll_interval: u32 = @shlExact(@as(u32, 1), @as(u5, if (server_poll_interval < @intFromEnum(poll_interval.interval_16s))
-            @intFromEnum(poll_interval.interval_16s)
-        else if (server_poll_interval > @intFromEnum(poll_interval.interval_131072s))
-            @intFromEnum(poll_interval.interval_131072s)
-        else
-            @intCast(server_poll_interval)));
+        const next_poll_interval: u32 = @shlExact(
+            @as(u32, 1),
+            @as(
+                u5,
+                if (server_poll_interval < @intFromEnum(poll_interval.interval_16s))
+                    @intFromEnum(poll_interval.interval_16s)
+                else if (server_poll_interval > @intFromEnum(poll_interval.interval_131072s))
+                    @intFromEnum(poll_interval.interval_131072s)
+                else
+                    @intCast(server_poll_interval),
+            ),
+        );
 
         return .{
             .timestamp_s = server_timestamp_s,
@@ -229,11 +234,12 @@ fn send(c: *@TypeOf(conn), packet: *sntp_v4_packet) !void {
 
 /// Get the current time from an sNTP server using the given URI.
 ///
-pub fn getTimeFromServer(uri: std.Uri) !ntp_response {
+pub fn getTimeFromServer(
+    uri: std.Uri,
+    originate_timestamp_s: u32,
+    originate_timestamp_frac: u32,
+) !ntp_response {
     try conn.init();
-
-    const originate_timestamp_s: u32 = 0; // system.time.getNtpTime();
-    const originate_timestamp_frac: u32 = 0;
 
     try conn.open(uri, 123);
     defer {

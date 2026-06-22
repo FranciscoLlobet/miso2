@@ -20,6 +20,7 @@
 #include "fsl_lpuart.h"
 #include "fsl_clock.h"
 #include "fsl_gpio.h"
+#include "fsl_rtc.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -59,11 +60,19 @@ extern "C" {
 #define GPIOC_IRQ_PRIORITY 5
 /* GPIOC interrupt handler identifier. */
 #define GPIOC_IRQHANDLER PORTC_IRQHandler
+/* Definition of peripheral ID */
+#define RTC_PERIPHERAL RTC
+/* RTC interrupt vector ID (number). */
+#define RTC_SECONDS_IRQN RTC_Seconds_IRQn
+/* RTC interrupt handler identifier. */
+#define RTC_SECONDS_IRQHANDLER RTC_Seconds_IRQHandler
 
 /***********************************************************************************************************************
  * Global variables
  **********************************************************************************************************************/
 extern const lpuart_config_t LPUART2_config;
+/* RTC configuration */
+extern const rtc_config_t RTC_config;
 
 /***********************************************************************************************************************
  * Initialization functions

@@ -408,7 +408,7 @@ void BOARD_InitENET(void);
 #define BOARD_INITENET_DEINIT_MII_RMII_PHY_RST_PIN_MASK (1U << 3U)      /*!<@brief PORT pin mask */
                                                                         /* @} */
 
-/*! @name PORTD11 (number 48), PTD11
+/*! @name PORTD11 (number 48), PTD11/FTM2_CH1/FTM2_QD_PHA/ETM_TRACE_D2/MII_RMII_TX_CLK/LPUART2_CTS/QSPI_A_IO0
   @{ */
 
 /* Symbols to be used with PORT driver */

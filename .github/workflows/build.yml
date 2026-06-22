@@ -38,3 +38,9 @@ jobs:
 
     - name: Compile project
       run: uv run python-zig build
+
+    - name: Verify build outputs
+      shell: bash
+      run: |
+        test -f zig-out/bin/miso2.elf
+        test -f zig-out/bin/miso2.hex

@@ -4,6 +4,7 @@ const rtx = @import("cmsis_rtx");
 const connection = @import("connection.zig");
 const simpleConnection = @import("simpleConnection.zig");
 const ntp = @import("ntp.zig");
+const time = @import("time.zig");
 
 const JobQueue = rtx.JobQueue;
 const JobMsg = rtx.JobMsg;
@@ -16,7 +17,6 @@ var jobQueue = JobQueue(
     10,
 ).default();
 
-//fn
 const mainRunType = struct {
     thread: rtx.StaticThread(
         @This(),
@@ -27,6 +27,7 @@ const mainRunType = struct {
 
     //    ntpResponse: ntp.ntp_response,
     ntpSyncTime: u32,
+    ntpSyncCount: u32,
 
     ntpTimer: rtx.StaticTimer(
         @This(),
@@ -76,6 +77,7 @@ const mainRunType = struct {
     fn runner(self: ?*@This()) void {
         //_ = self;
         self.?.ntpSyncTime = 0;
+        self.?.ntpSyncCount = 0;
 
         board.lpuart2.write("MISO2 starting\r\n") catch {};
 
@@ -155,20 +157,41 @@ const mainRunType = struct {
                 if (0 != (flags & @intFromEnum(mainEvents.trigger_ntp))) {
                     self.?.ntpTimer.stop() catch {};
 
-                    if (ntp.getTimeFromServer(ntp_uri)) |ntpResponse| {
-                        self.?.ntpSyncTime = ntpResponse.timestamp_s;
+                    if (ntp.getTimeFromServer(
+                        ntp_uri,
+                        board.system_rtc.get_timestamp(),
+                        kernel.getTickCount(),
+                    )) |ntpResponse| {
+                        const time_diff = board.system_rtc.set_timestamp(ntpResponse.timestamp_s);
 
-                        // Calculate the next time to sync
-                        const nextSyncTime: u32 = if (ntpResponse.poll_interval > 60 * 60) @as(u32, 60 * 60 * 1000) else ntpResponse.poll_interval * 1000;
+                        if (time_diff > 4) {
+                            self.?.ntpSyncCount = 0;
+                        } else if (time_diff <= 1) {
+                            self.?.ntpSyncCount += 1;
+                        } else {
+                            // nothing
+                        }
 
-                        _ = board.c.printf("NTP Sync: %u\r\n", self.?.ntpSyncTime);
-
-                        self.?.ntpTimer.start(nextSyncTime) catch unreachable;
-
-                        //self.state = .perform_firmware_download;
+                        if (self.?.ntpSyncCount > 3) {
+                            self.?.ntpSyncCount = 0;
+                            _ = self.?.thread.flagsSet(@intFromEnum(mainEvents.ntp_aquired)) catch unreachable;
+                        } else {
+                            const nextSyncTime: u32 = if (ntpResponse.poll_interval > 60 * 60) @as(u32, 60 * 60 * 1000) else ntpResponse.poll_interval * 1000;
+                            self.?.ntpTimer.start(nextSyncTime) catch unreachable;
+                        }
+                        //_ = board.c.printf("NTP Sync: %u, %d\r\n", ntpResponse.timestamp_s, time_diff);
                     } else |_| {
+                        self.?.ntpSyncCount = 0;
                         self.?.ntpTimer.start(16000) catch unreachable;
                     }
+                }
+                if (0 != (flags & @intFromEnum(mainEvents.ntp_aquired))) {
+                    // Set to resync in 15mins
+                    self.?.ntpSyncTime = board.system_rtc.get_timestamp();
+                    self.?.ntpSyncCount = 0;
+                    self.?.ntpTimer.start(@as(u32, 15 * 60 * 1000)) catch unreachable;
+
+                    _ = board.c.printf("NTP Acquired: %u\r\n", self.?.ntpSyncTime);
                 }
             }
 
