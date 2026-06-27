@@ -4,13 +4,9 @@ const rtx = @import("cmsis_rtx");
 const connection = @import("connection.zig");
 const simpleConnection = @import("simpleConnection.zig");
 const ntp = @import("ntp.zig");
-const time = @import("time.zig");
 
-const JobQueue = rtx.JobQueue;
-const JobMsg = rtx.JobMsg;
-
-var jobQueue = JobQueue(
-    JobMsg(anyopaque),
+var jobQueue = rtx.JobQueue(
+    rtx.JobMsg(anyopaque),
     "main executor",
     4096,
     .osPriorityAboveNormal,
@@ -151,7 +147,7 @@ const mainRunType = struct {
 
             // periodic state
 
-            if (self.?.thread.flagsWait(0x7FFFFFFF, .osFlagsWaitAny, rtx.osWaitNever) catch null) |flags| {
+            if (self.?.thread.flagsWait(rtx.osFlagsValidAll, .osFlagsWaitAny, rtx.osWaitNever) catch null) |flags| {
 
                 // Get the NTP trigger
                 if (0 != (flags & @intFromEnum(mainEvents.trigger_ntp))) {
@@ -159,10 +155,14 @@ const mainRunType = struct {
 
                     if (ntp.getTimeFromServer(
                         ntp_uri,
-                        board.system_rtc.get_timestamp(),
+                        board.rtc.unix_to_ntp(
+                            board.system_rtc.get_timestamp(),
+                        ),
                         kernel.getTickCount(),
                     )) |ntpResponse| {
-                        const time_diff = board.system_rtc.set_timestamp(ntpResponse.timestamp_s);
+                        const time_diff = board.system_rtc.set_timestamp(
+                            board.rtc.ntp_to_unix(ntpResponse.timestamp_s),
+                        );
 
                         if (time_diff > 4) {
                             self.?.ntpSyncCount = 0;
@@ -185,6 +185,7 @@ const mainRunType = struct {
                         self.?.ntpTimer.start(16000) catch unreachable;
                     }
                 }
+                // NTP time acquisition stopped
                 if (0 != (flags & @intFromEnum(mainEvents.ntp_aquired))) {
                     // Set to resync in 15mins
                     self.?.ntpSyncTime = board.system_rtc.get_timestamp();
@@ -193,6 +194,8 @@ const mainRunType = struct {
 
                     _ = board.c.printf("NTP Acquired: %u\r\n", self.?.ntpSyncTime);
                 }
+            } else {
+                //
             }
 
             const now = kernel.getTickCount();

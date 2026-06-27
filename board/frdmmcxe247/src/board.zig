@@ -7,6 +7,8 @@ const stdio = @import("stdio.zig");
 
 pub const ethernet = @import("ethernet.zig");
 
+pub const rtc = @import("rtc.zig");
+
 pub fn initPreKernel() void {
     c.BOARD_InitBootPins();
     c.BOARD_InitBootClocks();
@@ -184,80 +186,7 @@ export const stdin = &__stdio;
 //    unreachable;
 //}
 
-const nvic_iser: [*]volatile u32 = @ptrFromInt(0xE000E100);
-
-fn nvicEnableIRQ(irqn: c.IRQn_Type) void {
-    const irqn_u: u32 = @intCast(irqn);
-    nvic_iser[irqn_u >> 5] = @as(u32, 1) << @intCast(irqn_u & 0x1F);
-}
-
-pub fn Rtc(comptime rtc: *c.RTC_Type) type {
-    return struct {
-        val: u32,
-
-        pub fn default() @This() {
-            return .{
-                .val = 0,
-            };
-        }
-        pub fn start(_: *@This()) void {
-            // c.EnableIRQ goes through __NVIC_EnableIRQ, which zig's
-            // translate-c can't translate (it uses inline asm for
-            // __COMPILER_BARRIER), leaving an undefined extern symbol.
-            // Enable the IRQ directly via the NVIC register instead.
-            nvicEnableIRQ(c.RTC_SECONDS_IRQN);
-
-            c.RTC_StartTimer(rtc);
-        }
-
-        // Increment the seconds timer by one
-        pub inline fn handle_isr(self: *@This()) void {
-            const isr_flags = c.RTC_GetStatusFlags(rtc);
-
-            @atomicStore(
-                @TypeOf(self.val),
-                &self.val,
-                1 + @atomicLoad(
-                    @TypeOf(self.val),
-                    &self.val,
-                    .seq_cst,
-                ),
-                .seq_cst,
-            );
-
-            c.RTC_ClearStatusFlags(rtc, isr_flags);
-        }
-        pub inline fn get_timestamp(self: *@This()) u32 {
-            return @atomicLoad(
-                @TypeOf(self.val),
-                &self.val,
-                .seq_cst,
-            );
-        }
-        // Set timestamp, returns timestamp difference
-        pub fn set_timestamp(self: *@This(), val: u32) u64 {
-            c.RTC_StopTimer(rtc);
-
-            const prev_val: u32 = @atomicLoad(
-                @TypeOf(self.val),
-                &self.val,
-                .seq_cst,
-            );
-
-            @atomicStore(
-                @TypeOf(self.val),
-                &self.val,
-                val,
-                .seq_cst,
-            );
-
-            c.RTC_StartTimer(rtc);
-
-            return @abs(@as(i64, @intCast(val)) - @as(i64, @intCast(prev_val)));
-        }
-    };
-}
-
-pub var system_rtc = Rtc(
+pub var system_rtc = rtc.Rtc(
     c.RTC_PERIPHERAL,
+    0,
 ).default();
