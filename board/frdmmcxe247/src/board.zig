@@ -7,6 +7,8 @@ const stdio = @import("stdio.zig");
 
 pub const ethernet = @import("ethernet.zig");
 
+pub const rtc = @import("rtc.zig");
+
 pub fn initPreKernel() void {
     c.BOARD_InitBootPins();
     c.BOARD_InitBootClocks();
@@ -47,6 +49,8 @@ pub fn initialize() void {
 
     ethernet.mdio.init();
 
+    system_rtc.start();
+
     runtime.hwJobQueue.initialize() catch unreachable;
 }
 
@@ -68,6 +72,10 @@ export fn PORTC_IRQHandler() callconv(.c) void {
     button_sw3.handleIsr();
 
     c.GPIO_PortClearInterruptFlags(c.BOARD_INITBUTTONSPINS_SW3_GPIO, isr_flags);
+}
+
+export fn RTC_Seconds_IRQHandler() callconv(.c) void {
+    system_rtc.handle_isr();
 }
 
 pub var lpuart2 = uart.uart_if(
@@ -177,3 +185,8 @@ export const stdin = &__stdio;
 //export fn set_errno(_: c_int) callconv(.c) void {
 //    unreachable;
 //}
+
+pub var system_rtc = rtc.Rtc(
+    c.RTC_PERIPHERAL,
+    0,
+).default();

@@ -56,6 +56,9 @@ pub const osFlagsOptions = enum(u32) {
     osFlagsNoClear = c.osFlagsNoClear,
 };
 
+// All valid flags
+pub const osFlagsValidAll: u32 = 0x7FFFFFFF;
+
 // Map `osStatus` codes to zig errors
 pub inline fn osErrorMap(osStatus: osStatus_t) osError!void {
     return switch (osStatus) {

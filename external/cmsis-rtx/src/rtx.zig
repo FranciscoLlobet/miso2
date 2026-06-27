@@ -51,3 +51,5 @@ pub const osWaitForever = core.osWaitForever;
 pub const osWaitNever = core.osWaitNever;
 
 pub const osFlagsOptions = core.osFlagsOptions;
+
+pub const osFlagsValidAll = core.osFlagsValidAll;

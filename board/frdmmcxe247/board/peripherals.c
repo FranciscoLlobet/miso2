@@ -80,6 +80,7 @@ instance:
       - 0: []
       - 1: []
       - 2: []
+      - 3: []
     - interrupts: []
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
 /* clang-format on */
@@ -240,6 +241,85 @@ static void GPIOC_init(void) {
 }
 
 /***********************************************************************************************************************
+ * RTC initialization code
+ **********************************************************************************************************************/
+/* clang-format off */
+/* TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
+instance:
+- name: 'RTC'
+- type: 'rtc'
+- mode: 'general'
+- custom_name_enabled: 'false'
+- type_id: 'rtc_2.4.0'
+- functional_group: 'BOARD_InitPeripherals'
+- peripheral: 'RTC'
+- config_sets:
+  - fsl_rtc:
+    - clockConfig_t:
+      - clockSource: 'clk_32khz'
+      - clockSourceFreq: 'BOARD_BootClockRUN'
+    - rtc_config:
+      - clockOutput: 'false'
+      - updateMode: 'false'
+      - supervisorAccess: 'false'
+      - compensationIntervalInt: '1'
+      - compensationTimeInt: '0'
+      - setDateTime: 'false'
+      - rtc_datetime:
+        - year: '1970'
+        - month: '1'
+        - day: '1'
+        - hour: '0'
+        - minute: '0'
+        - second: '0'
+      - setAlarm: 'false'
+      - alarm_datetime:
+        - year: '1970'
+        - month: '1'
+        - day: '1'
+        - hour: '0'
+        - minute: '0'
+        - second: '0'
+      - start: 'false'
+    - interruptsCfg:
+      - interruptSources: 'kRTC_SecondsInterruptEnable'
+      - isSecondsInterruptEnabled: 'true'
+      - secondsInterrupt:
+        - IRQn: 'RTC_Seconds_IRQn'
+        - enable_interrrupt: 'noInit'
+        - enable_priority: 'false'
+        - priority: '1'
+        - enable_custom_name: 'false'
+      - isInterruptEnabled: 'false'
+      - commonInterrupt:
+        - IRQn: 'RTC_IRQn'
+        - enable_interrrupt: 'enabled'
+        - enable_priority: 'false'
+        - priority: '0'
+        - enable_custom_name: 'false'
+ * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
+/* clang-format on */
+const rtc_config_t RTC_config = {
+  .clockOutput = false,
+  .wakeupSelect = false,
+  .updateMode = false,
+  .supervisorAccess = false,
+  .compensationInterval = 0x0U,
+  .compensationTime = 0x0U
+};
+
+static void RTC_init(void) {
+  /* RTC initialization */
+  RTC_Init(RTC_PERIPHERAL, &RTC_config);
+  /* Set 32kHz clock source */
+  RTC_EnableLPOClock(RTC_PERIPHERAL, false);
+  /* Enable interrupts */
+  RTC_EnableInterrupts(RTC_PERIPHERAL, (kRTC_SecondsInterruptEnable));
+  /* Interrupt RTC_SECONDS_IRQN request in the NVIC is not initialized (disabled by default). */
+  /* It can be enabled later by EnableIRQ(RTC_SECONDS_IRQN); function call. */
+}
+
+/***********************************************************************************************************************
  * Initialization functions
  **********************************************************************************************************************/
 void BOARD_InitPeripherals(void)
@@ -248,6 +328,7 @@ void BOARD_InitPeripherals(void)
   LPUART2_init();
   GPIOA_init();
   GPIOC_init();
+  RTC_init();
 }
 
 /***********************************************************************************************************************

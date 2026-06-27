@@ -42,6 +42,7 @@ pub fn build(b: *std.Build) void {
             "gpio/fsl_gpio.c",
             "enet/fsl_enet.c",
             "sim/fsl_sim.c",
+            "rtc/fsl_rtc.c",
         },
         .root = b.path("mcuxsdk-core/drivers"),
         .flags = &.{
@@ -58,6 +59,7 @@ pub fn build(b: *std.Build) void {
     lib.root_module.addIncludePath(b.path("mcuxsdk-core/drivers/gpio"));
     lib.root_module.addIncludePath(b.path("mcuxsdk-core/drivers/enet"));
     lib.root_module.addIncludePath(b.path("mcuxsdk-core/drivers/sim"));
+    lib.root_module.addIncludePath(b.path("mcuxsdk-core/drivers/rtc"));
     lib.root_module.addIncludePath(b.path("../picolibc/include"));
     lib.root_module.addIncludePath(b.path("../mcux-devices-mcx/mcux-devices-mcx/MCXE/MCXE247"));
     lib.root_module.addIncludePath(b.path("../mcux-devices-mcx/mcux-devices-mcx/MCXE/periph0"));
@@ -104,6 +106,12 @@ pub fn build(b: *std.Build) void {
         "mcuxsdk-core/include",
         .{ .include_extensions = &.{".h"} },
     );
+    lib.installHeadersDirectory(
+        b.path("mcuxsdk-core/drivers/rtc"),
+        "mcuxsdk-core/include",
+        .{ .include_extensions = &.{".h"} },
+    );
+
     // =========================================================================
     // Compiler-specific definitions
     // =========================================================================

@@ -57,7 +57,6 @@ typedef enum {
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-#define BOARD_XTAL0_CLK_HZ                          8000000U  /*!< Board xtal0 frequency in Hz */
 
 /*******************************************************************************
  ************************ BOARD_InitBootClocks function ************************
@@ -88,7 +87,7 @@ void BOARD_InitBootClocks(void);
 #define BOARD_BOOTCLOCKRUN_BUS_CLOCK                  48000000UL     /* Clock consumers of Bus_clock output : ADC0, ADC1, CMP0, CRC, ENET, EWM, FLEXIO, I2S0, I2S1, LPI2C0, LPI2C1, LPIT0, LPSPI0, LPSPI1, LPSPI2, LPTMR0, LPUART0, LPUART1, LPUART2, PORTA, PORTB, PORTC, PORTD, PORTE, QuadSPI, RCM, RTC, WDOG */
 #define BOARD_BOOTCLOCKRUN_CLKOUT                     0UL            /* Clock consumers of CLKOUT output : N/A */
 #define BOARD_BOOTCLOCKRUN_CORE_CLOCK                 48000000UL     /* Clock consumers of Core_clock output : N/A */
-#define BOARD_BOOTCLOCKRUN_FIRCDIV1_CLK               48000000UL     /* Clock consumers of FIRCDIV1_CLK output : ENET, QuadSPI */
+#define BOARD_BOOTCLOCKRUN_FIRCDIV1_CLK               0UL            /* Clock consumers of FIRCDIV1_CLK output : QuadSPI */
 #define BOARD_BOOTCLOCKRUN_FIRCDIV2_CLK               48000000UL     /* Clock consumers of FIRCDIV2_CLK output : N/A */
 #define BOARD_BOOTCLOCKRUN_FLASH_CLOCK                24000000UL     /* Clock consumers of Flash_clock output : FTFC */
 #define BOARD_BOOTCLOCKRUN_LPO1K_CLK                  1000UL         /* Clock consumers of LPO1K_CLK output : LPTMR0, RTC */
@@ -119,14 +118,14 @@ void BOARD_InitBootClocks(void);
 #define BOARD_BOOTCLOCKRUN_PLLDIV1_CLK                0UL            /* Clock consumers of PLLDIV1_CLK output : QuadSPI */
 #define BOARD_BOOTCLOCKRUN_PLLDIV2_CLK                0UL            /* Clock consumers of PLLDIV2_CLK output : N/A */
 #define BOARD_BOOTCLOCKRUN_PREDIV_SYSTEM_CLOCK        48000000UL     /* Clock consumers of Prediv_system_clock output : QuadSPI */
-#define BOARD_BOOTCLOCKRUN_RMIICLK                    50000000UL     /* Clock consumers of RMIICLK output : ENET (external 50 MHz oscillator) */
-#define BOARD_BOOTCLOCKRUN_RTC_CLK                    32000UL        /* Clock consumers of RTC_CLK output : FTM0, FTM1, FTM2, FTM3, FTM4, FTM5, FTM6, FTM7, LPTMR0, RTC */
-#define BOARD_BOOTCLOCKRUN_SIRCDIV1_CLK               8000000UL      /* Clock consumers of SIRCDIV1_CLK output : N/A */
+#define BOARD_BOOTCLOCKRUN_RMIICLK                    16000000UL     /* Clock consumers of RMIICLK output : ENET */
+#define BOARD_BOOTCLOCKRUN_RTC_CLK                    32768UL        /* Clock consumers of RTC_CLK output : FTM0, FTM1, FTM2, FTM3, FTM4, FTM5, FTM6, FTM7, LPTMR0, RTC */
+#define BOARD_BOOTCLOCKRUN_SIRCDIV1_CLK               0UL            /* Clock consumers of SIRCDIV1_CLK output : N/A */
 #define BOARD_BOOTCLOCKRUN_SIRCDIV2_CLK               8000000UL      /* Clock consumers of SIRCDIV2_CLK output : LPTMR0 */
 #define BOARD_BOOTCLOCKRUN_SIRC_CLK                   8000000UL      /* Clock consumers of SIRC_CLK output : WDOG */
-#define BOARD_BOOTCLOCKRUN_SOSCDIV1_CLK               8000000UL      /* Clock consumers of SOSCDIV1_CLK output : I2S0, I2S1 */
-#define BOARD_BOOTCLOCKRUN_SOSCDIV2_CLK               8000000UL      /* Clock consumers of SOSCDIV2_CLK output : CAN0, CAN1, CAN2 */
-#define BOARD_BOOTCLOCKRUN_SOSC_CLK                   8000000UL      /* Clock consumers of SOSC_CLK output : WDOG */
+#define BOARD_BOOTCLOCKRUN_SOSCDIV1_CLK               16000000UL     /* Clock consumers of SOSCDIV1_CLK output : I2S0, I2S1 */
+#define BOARD_BOOTCLOCKRUN_SOSCDIV2_CLK               0UL            /* Clock consumers of SOSCDIV2_CLK output : CAN0, CAN1, CAN2 */
+#define BOARD_BOOTCLOCKRUN_SOSC_CLK                   16000000UL     /* Clock consumers of SOSC_CLK output : WDOG */
 #define BOARD_BOOTCLOCKRUN_SYSTEM_CLOCK               48000000UL     /* Clock consumers of System_clock output : CAN0, CAN1, CAN2, CoreDebug, DMA0, ENET, FTM0, FTM1, FTM2, FTM3, FTM4, FTM5, FTM6, FTM7, PDB0, PDB1, QuadSPI, SysTick */
 #define BOARD_BOOTCLOCKRUN_TRACECLKIN                 48000000UL     /* Clock consumers of TRACECLKIN output : CoreDebug */
 

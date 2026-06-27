@@ -1,7 +1,14 @@
 [project]
 name = "miso2"
 version = "0.1.0"
-description = "Add your description here"
+description = "Miso2 pyproject for UV"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "doit>=0.37.0",
+    "invoke>=3.0.3",
+    "meson>=1.11.1",
+    "ninja>=1.13.0",
+    "pyyaml>=6.0.3",
+    "ziglang==0.16.0",
+]
