@@ -48,7 +48,8 @@ void BOARD_InitBootPins(void)
  * TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
 BOARD_InitPins:
 - options: {callFromInitBoot: 'true', coreID: core0, enableClock: 'true'}
-- pin_list: []
+- pin_list:
+  - {pin_num: '83', peripheral: RTC, signal: CLKIN, pin_signal: PTA7/FTM0_FLT2/FTM5_CH3/RTC_CLKIN/LPUART1_RTS/ADC0_SE3}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS ***********
  */
 /* clang-format on */
@@ -61,6 +62,11 @@ BOARD_InitPins:
  * END ****************************************************************************************************************/
 void BOARD_InitPins(void)
 {
+    /* Clock Gate Control: Clock enabled. The current clock selection and divider options are locked and cannot be modified. */
+    CLOCK_EnableClock(kCLOCK_PortA);
+
+    /* PORTA7 (pin 83) is configured as RTC_CLKIN */
+    PORT_SetPinMux(BOARD_INITPINS_RTC_CLKIN_PORT, BOARD_INITPINS_RTC_CLKIN_PIN, kPORT_MuxAlt4);
 }
 
 /* clang-format off */

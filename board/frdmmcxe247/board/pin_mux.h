@@ -32,6 +32,15 @@ extern "C" {
  */
 void BOARD_InitBootPins(void);
 
+/*! @name PORTA7 (number 83), PTA7
+  @{ */
+
+/* Symbols to be used with PORT driver */
+#define BOARD_INITPINS_RTC_CLKIN_PORT PORTA               /*!<@brief PORT peripheral base pointer */
+#define BOARD_INITPINS_RTC_CLKIN_PIN 7U                   /*!<@brief PORT pin number */
+#define BOARD_INITPINS_RTC_CLKIN_PIN_MASK (1U << 7U)      /*!<@brief PORT pin mask */
+                                                          /* @} */
+
 /*!
  * @brief Configures pin routing and optionally pin electrical features.
  *

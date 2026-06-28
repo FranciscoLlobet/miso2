@@ -82,6 +82,10 @@ pub const nsc_reason = enum(u16) {
     ipv6_set = c.LWIP_NSC_IPV6_SET,
     ipv6_addr_state_changed = c.LWIP_NSC_IPV6_ADDR_STATE_CHANGED,
     ipv4_addr_valid = c.LWIP_NSC_IPV4_ADDR_VALID,
+
+    pub fn check_flag(flag: @This(), reason: u16) bool {
+        return ((reason & @intFromEnum(flag)) != @as(u16, 0));
+    }
 };
 
 pub fn Netif() type {
@@ -92,6 +96,8 @@ pub fn Netif() type {
         speed: u32,
         duplex: bool,
         dhcp_bound: bool,
+        dhcp_up_down_cb: ?*const fn (arg: ?*anyopaque, up_down: bool) void,
+        dhcp_up_down_arg: ?*anyopaque,
 
         fn link_status_callback(n: [*c]c.netif) callconv(.c) void {
             var self: *@This() = @fieldParentPtr("netIf", @as(*c.netif, @ptrCast(n)));
@@ -130,9 +136,20 @@ pub fn Netif() type {
         fn ext_callback(n: [*c]c.netif, reason: c.netif_nsc_reason_t, args: [*c]const c.netif_ext_callback_args_t) callconv(.c) void {
             const self: *@This() = @fieldParentPtr("netIf", @as(*c.netif, @ptrCast(n)));
             //
-            _ = self;
-            _ = reason;
             _ = args;
+            if (nsc_reason.check_flag(.link_changed, reason)) {
+                // Check for linkdown
+            }
+
+            //const processed_reason: nsc_reason = @enumFromInt(reason);
+            if (nsc_reason.check_flag(.ipv4_address_changed, @intCast(reason))) { //c
+                //
+                if (self.dhcp_up_down_cb) |cb| {
+                    cb(self.dhcp_up_down_arg, self.dhcp_bound);
+                }
+            }
+
+            //_ = processed_reason;
         }
 
         pub fn default() @This() {
@@ -143,6 +160,8 @@ pub fn Netif() type {
                 .dhcp = undefined,
                 .cb_mem = undefined,
                 .dhcp_bound = false,
+                .dhcp_up_down_cb = null,
+                .dhcp_up_down_arg = null,
             };
         }
 
@@ -150,7 +169,13 @@ pub fn Netif() type {
             c.netif.set_default(&self.netIf);
         }
 
-        pub fn set_callbacks(self: *@This()) void {
+        pub fn set_callbacks(
+            self: *@This(),
+            dhcp_up_down_cb: *const fn (arg: ?*anyopaque, up_down: bool) void,
+            dhcp_up_down_arg: ?*anyopaque,
+        ) void {
+            self.dhcp_up_down_cb = dhcp_up_down_cb;
+            self.dhcp_up_down_arg = dhcp_up_down_arg;
             c.netif_set_link_callback(&(self.netIf), link_status_callback);
             c.netif_set_status_callback(&(self.netIf), status_callback);
             c.netif_add_ext_callback(&(self.cb_mem), ext_callback);

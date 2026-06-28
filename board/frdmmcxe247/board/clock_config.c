@@ -182,12 +182,12 @@ outputs:
 - {id: PCC.PCC_FLEXIO_CLK.outFreq, value: 8 MHz}
 - {id: PCC.PCC_LPUART2_CLK.outFreq, value: 8 MHz}
 - {id: Prediv_system_clock.outFreq, value: 48 MHz}
-- {id: RMIICLK.outFreq, value: 16 MHz}
+- {id: RMIICLK.outFreq, value: 8 MHz}
 - {id: RTC_CLK.outFreq, value: 32.768 kHz}
 - {id: SIRCDIV2_CLK.outFreq, value: 8 MHz}
 - {id: SIRC_CLK.outFreq, value: 8 MHz}
-- {id: SOSCDIV1_CLK.outFreq, value: 16 MHz}
-- {id: SOSC_CLK.outFreq, value: 16 MHz}
+- {id: SOSCDIV1_CLK.outFreq, value: 8 MHz}
+- {id: SOSC_CLK.outFreq, value: 8 MHz}
 - {id: System_clock.outFreq, value: 48 MHz}
 - {id: TRACECLKIN.outFreq, value: 48 MHz}
 settings:
@@ -203,15 +203,14 @@ settings:
 - {id: SCG.SIRCDIV2.scale, value: '1', locked: true}
 - {id: SCG.SOSCDIV1.scale, value: '1', locked: true}
 - {id: SCG.SOSCDIV2.scale, value: '0', locked: true}
-- {id: SCG.SPLL_mul.scale, value: '16', locked: true}
+- {id: SCG.SPLL_mul.scale, value: '32', locked: true}
 - {id: SCG_SOSCCFG_OSC_MODE_CFG, value: ModeOscLowPower}
-- {id: SCG_SOSCCFG_RANGE_CFG, value: High}
 - {id: SCG_SOSCCSR_SOSCEN_CFG, value: Enabled}
 - {id: SCG_SPLLCSR_SPLLEN_CFG, value: Enabled}
 - {id: SIM.RMIICLKSEL.sel, value: SCG.SOSCDIV1_CLK}
 - {id: SIM.RTCCLKSEL.sel, value: SIM.RTC_CLK_EXT_IN}
 sources:
-- {id: SCG.SOSC.outFreq, value: 16 MHz, enabled: true}
+- {id: SCG.SOSC.outFreq, value: 8 MHz, enabled: true}
 - {id: SIM.ENET_RMII_CLK_EXT_IN.outFreq, value: 50 MHz, enabled: true}
 - {id: SIM.RTC_CLK_EXT_IN.outFreq, value: 32.768 kHz, enabled: true}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
@@ -229,7 +228,7 @@ const scg_sys_clk_config_t g_sysClkConfig_BOARD_BootClockRUN =
     };
 const scg_sosc_config_t g_scgSysOscConfig_BOARD_BootClockRUN =
     {
-        .freq = 16000000U,                        /* System Oscillator frequency: 16000000Hz */
+        .freq = 8000000U,                         /* System Oscillator frequency: 8000000Hz */
         .enableMode = kSCG_SysOscEnable,          /* Enable System OSC clock */
         .monitorMode = kSCG_SysOscMonitorDisable, /* Monitor disabled */
         .div1 = kSCG_AsyncClkDivBy1,              /* System OSC Clock Divider 1: divided by 1 */
@@ -258,7 +257,7 @@ const scg_spll_config_t g_scgSysPllConfig_BOARD_BootClockRUN =
         .div1 = kSCG_AsyncClkDisable,             /* System PLL Clock Divider 1: Clock output is disabled */
         .div2 = kSCG_AsyncClkDisable,             /* System PLL Clock Divider 2: Clock output is disabled */
         .prediv = 0,                              /* Divided by 1 */
-        .mult = 0,                                /* Multiply Factor is 16 */
+        .mult = 16,                               /* Multiply Factor is 32 */
     };
 /*******************************************************************************
  * Code for BOARD_BootClockRUN configuration

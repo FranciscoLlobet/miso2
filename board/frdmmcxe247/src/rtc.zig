@@ -22,7 +22,7 @@ pub inline fn unix_to_ntp(unix_timestamp: u32) u32 {
 }
 
 pub fn Rtc(
-    comptime rtc: *c.RTC_Type,
+    comptime rtc: [*c]c.RTC_Type,
     comptime initial_time_stamp: u32,
 ) type {
     return struct {
@@ -34,27 +34,23 @@ pub fn Rtc(
             };
         }
         pub fn start(_: *@This()) void {
-            // c.EnableIRQ goes through __NVIC_EnableIRQ, which zig's
-            // translate-c can't translate (it uses inline asm for
-            // __COMPILER_BARRIER), leaving an undefined extern symbol.
-            // Enable the IRQ directly via the NVIC register instead.
-            nvicEnableIRQ(c.RTC_SECONDS_IRQN);
+            rtc.*.TSR = comptime if (initial_time_stamp != 0) initial_time_stamp else 1;
+
+            c.RTC_ClearStatusFlags(rtc, c.RTC_GetStatusFlags(rtc));
+
+            c.RTC_SetTimerSecondsInterruptFrequency(rtc, c.kRTC_TimerSecondsFrequency1Hz);
 
             c.RTC_StartTimer(rtc);
         }
 
         // Increment the seconds timer by one
-        pub inline fn handle_isr(self: *@This()) void {
+        pub fn handle_isr(self: *@This()) void {
             const isr_flags = c.RTC_GetStatusFlags(rtc);
 
             @atomicStore(
                 @TypeOf(self.val),
                 &self.val,
-                1 + @atomicLoad(
-                    @TypeOf(self.val),
-                    &self.val,
-                    .seq_cst,
-                ),
+                rtc.*.TSR,
                 .seq_cst,
             );
 
@@ -63,21 +59,18 @@ pub fn Rtc(
         // Get Unix timestamp
         pub inline fn get_timestamp(self: *@This()) u32 {
             _ = self;
-            //return @atomicLoad(
-            //    @TypeOf(self.val),
-            //    &self.val,
-            //    .seq_cst,
-            //);
-            return rtc.TSR;
+
+            return rtc.*.TSR;
         }
         // Set timestamp, returns timestamp difference
         pub fn set_timestamp(self: *@This(), val: u32) u64 {
             _ = self;
+            //_ = val;
             c.RTC_StopTimer(rtc);
 
-            const prev_val = rtc.TSR;
+            const prev_val = rtc.*.TSR;
 
-            rtc.TSR = val;
+            rtc.*.TSR = if (val != 0) val else 1;
 
             c.RTC_StartTimer(rtc);
 
