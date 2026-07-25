@@ -4,6 +4,9 @@ const messageQueue = @import("messageQueue.zig");
 
 const osThreadPriority = thread.osThreadPriority;
 
+pub const default_task_attr: u32 = 0;
+pub const default_mq_attr: u32 = 0;
+
 pub fn JobMsg(comptime T: type) type {
     return struct {
         jobFn: *const fn (param: ?*T) void,
@@ -17,6 +20,8 @@ pub fn JobQueue(
     comptime stack_size: usize,
     comptime priority: osThreadPriority,
     comptime queue_size: usize,
+    comptime queue_attr: u32,
+    comptime thread_attr: u32,
 ) type {
     return struct {
         const staticThreadType = thread.StaticThread(
@@ -43,8 +48,14 @@ pub fn JobQueue(
         }
 
         pub fn initialize(self: *@This()) core.osError!void {
-            try self.queue.new(0);
-            try self.thread.new(self, 0, priority);
+            try self.queue.new(
+                queue_attr,
+            );
+            try self.thread.new(
+                self,
+                thread_attr,
+                priority,
+            );
         }
 
         fn queueRunner(self: ?*@This()) void {

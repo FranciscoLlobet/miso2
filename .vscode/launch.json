@@ -17,6 +17,7 @@
             "gdbTarget": "127.0.0.1:3333",
             "armToolchainPath": "${workspaceFolder}/arm-toolchain/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi/bin",
             "rtos": "auto",
+            "svdFile": "${workspaceFolder}/board/frdmmcxe247/MCXE247.xml"
         },
     ]
 }

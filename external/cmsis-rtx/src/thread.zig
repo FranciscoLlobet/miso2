@@ -121,12 +121,16 @@ pub fn getThreadId() @This() {
 }
 
 /// Creates a Thread object using an existing ThreadId reference
-pub fn create(id: osThreadId_t) !@This() {
+pub fn create(id: osThreadId_t) osError!@This() {
     return if (id == null) osError.osError else .{ .id = id };
 }
 
 /// Creates a new Thread
-pub inline fn new(func: osThreadFunc_t, argument: ?*anyopaque, attr: *const osThreadAttr_t) !@This() {
+pub inline fn new(
+    func: osThreadFunc_t,
+    argument: ?*anyopaque,
+    attr: *const osThreadAttr_t,
+) osError!@This() {
     return @This().create(osThreadNew(func, argument, attr));
 }
 
@@ -226,7 +230,12 @@ pub fn StaticThread(
             taskRunnerFn(@as(?*T, @ptrCast(@alignCast(arg))));
         }
 
-        pub fn new(self: *@This(), arg: ?*T, attrs: u32, priority: thread.osThreadPriority) osError!void {
+        pub fn new(
+            self: *@This(),
+            arg: ?*T,
+            attrs: u32,
+            priority: thread.osThreadPriority,
+        ) osError!void {
 
             // Thread attributes
             const attr: c.osThreadAttr_t = .{
@@ -241,46 +250,64 @@ pub fn StaticThread(
                 .affinity_mask = 0,
             };
 
-            self.thread = try thread.new(run, @ptrCast(@alignCast(arg)), &attr);
+            self.thread = try thread.new(run, @ptrCast(
+                @alignCast(arg),
+            ), &attr);
         }
 
         pub fn getThreadRef(self: *const @This()) *thread {
             return &self.thread;
         }
+
         pub fn getState(self: *const @This()) osThreadState {
             return self.thread.getState();
         }
+
         pub fn getStackSize(self: *const @This()) usize {
             return self.thread.getStackSize();
         }
+
         pub fn getStackSpace(self: *const @This()) usize {
             return self.thread.getStackSpace();
         }
+
         pub fn threadSuspend(self: *const @This()) osError!void {
             return self.thread.threadSuspend();
         }
+
         pub fn threadResume(self: *const @This()) osError!void {
             return self.thread.threadResume();
         }
+
         pub fn flagsSet(self: *const @This(), flags: u32) osError!u32 {
             return self.thread.flagsSet(flags);
         }
+
         pub fn feedWatchdog(_: *const @This(), ticks: u32) osError!void {
             return thread.feedWatchdog(ticks);
         }
+
         pub fn flagsClear(_: *const @This(), flags: u32) osError!void {
             return thread.flagsClear(flags);
         }
+
         pub fn flagsGet(_: *const @This()) osError!u32 {
             return thread.flagsGet();
         }
-        pub fn flagsWait(_: *const @This(), flags: u32, options: osFlagsOptions, timeout: u32) osError!?u32 {
+
+        pub fn flagsWait(
+            _: *const @This(),
+            flags: u32,
+            options: osFlagsOptions,
+            timeout: u32,
+        ) osError!?u32 {
             return thread.flagsWait(
                 flags,
                 options,
                 timeout,
             );
         }
+
         pub fn yield(_: *const @This()) osError!void {
             return thread.yield();
         }
