@@ -24,8 +24,6 @@
 //! - <https://datatracker.ietf.org/doc/html/rfc5905>
 //!
 const std = @import("std");
-const connection = @import("connection.zig");
-const simpleConnection = @import("simpleConnection.zig");
 
 const sntp_error = error{
     invalid_server_version,
@@ -221,47 +219,50 @@ const sntp_v4_packet = packed struct {
     }
 };
 
-var conn: connection.Connection(simpleConnection.LwipConnection(.udp_ip4)) = undefined;
+pub fn Ntp(connectionType: type) type {
+    return struct {
+        conn: connectionType,
 
-/// Send an sNTP packet to the given connection.
-fn send(c: *@TypeOf(conn), packet: *sntp_v4_packet) !void {
-    if (c.send(packet.slice())) |len| {
-        if (len != sntp_v4_packet.len()) return sntp_error.send_error;
-    } else |_| {
-        return sntp_error.send_error;
-    }
-}
+        /// Send an sNTP packet to the given connection.
+        fn send(c: *connectionType, packet: *sntp_v4_packet) !void {
+            if (c.send(packet.slice())) |len| {
+                if (len != sntp_v4_packet.len()) return sntp_error.send_error;
+            } else |_| {
+                return sntp_error.send_error;
+            }
+        }
 
-/// Get the current time from an sNTP server using the given URI.
-///
-pub fn getTimeFromServer(
-    uri: std.Uri,
-    originate_timestamp_s: u32,
-    originate_timestamp_frac: u32,
-) !ntp_response {
-    try conn.init();
+        pub fn getTimeFromServer(
+            self: *@This(),
+            uri: std.Uri,
+            originate_timestamp_s: u32,
+            originate_timestamp_frac: u32,
+        ) !ntp_response {
+            try self.conn.init();
 
-    try conn.open(uri, 123);
-    defer {
-        conn.close() catch {};
-    }
-    var packet = sntp_v4_packet.createRequest(
-        originate_timestamp_s,
-        originate_timestamp_frac,
-    );
+            try self.conn.open(uri, 123);
+            defer {
+                self.conn.close() catch {};
+            }
+            var packet = sntp_v4_packet.createRequest(
+                originate_timestamp_s,
+                originate_timestamp_frac,
+            );
 
-    try send(&conn, &packet);
+            try send(&self.conn, &packet);
 
-    //_ = try conn.waitRx(2);
+            //_ = try conn.waitRx(2);
 
-    _ = try conn.recieve(packet.slice());
+            _ = try self.conn.recieve(packet.slice());
 
-    const server_time = try packet.process_server_packet(
-        originate_timestamp_s,
-        originate_timestamp_frac,
-    );
+            const server_time = try packet.process_server_packet(
+                originate_timestamp_s,
+                originate_timestamp_frac,
+            );
 
-    //try system.time.setTimeFromNtp(server_time.timestamp_s);
+            //try system.time.setTimeFromNtp(server_time.timestamp_s);
 
-    return server_time;
+            return server_time;
+        }
+    };
 }

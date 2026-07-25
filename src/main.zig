@@ -15,6 +15,8 @@ var jobQueue = rtx.JobQueue(
     rtx.jobQueue.default_task_attr,
 ).default();
 
+var ntpService: ntp.Ntp(connection.Connection(simpleConnection.LwipConnection(.udp_ip4))) = undefined;
+
 const mainRunType = struct {
     const main_event_wait_period: u32 = 1000;
 
@@ -163,6 +165,7 @@ const mainRunType = struct {
 
             // periodic state
 
+            // Wait for events
             if (self.?.thread.flagsWait(
                 rtx.osFlagsValidAll,
                 .osFlagsWaitAny,
@@ -209,7 +212,7 @@ const mainRunType = struct {
     ) rtx.osError!void {
         self.ntpTimer.stop() catch {};
 
-        if (ntp.getTimeFromServer(
+        if (ntpService.getTimeFromServer(
             ntp_uri,
             board.rtc.unix_to_ntp(
                 board.system_rtc.get_timestamp(),
