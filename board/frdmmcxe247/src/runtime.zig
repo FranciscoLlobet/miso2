@@ -10,4 +10,6 @@ pub var hwJobQueue = JobQueue(
     2048,
     .osPriorityAboveNormal,
     10,
+    rtx.jobQueue.default_mq_attr,
+    rtx.jobQueue.default_task_attr,
 ).default();

@@ -5,7 +5,6 @@ pub const c = @cImport({
     @cInclude("fsl_phylan8741.h");
     @cInclude("fsl_silicon_id.h");
     @cInclude("fsl_enet.h");
-    @cInclude("fsl_rtc.h");
     @cInclude("ethernetif.h");
     @cInclude("lwip/init.h");
     @cInclude("lwip/dhcp.h");

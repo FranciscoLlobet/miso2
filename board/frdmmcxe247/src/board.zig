@@ -78,6 +78,10 @@ export fn RTC_Seconds_IRQHandler() callconv(.c) void {
     system_rtc.handle_isr();
 }
 
+export fn RTC_IRQHandler() callconv(.c) void {
+    while (true) {}
+}
+
 pub var lpuart2 = uart.uart_if(
     "LPUART2",
     c.LPUART2_PERIPHERAL,

@@ -64,6 +64,8 @@ extern "C" {
 #define RTC_PERIPHERAL RTC
 /* RTC interrupt vector ID (number). */
 #define RTC_SECONDS_IRQN RTC_Seconds_IRQn
+/* RTC interrupt vector priority. */
+#define RTC_SECONDS_IRQ_PRIORITY 5
 /* RTC interrupt handler identifier. */
 #define RTC_SECONDS_IRQHANDLER RTC_Seconds_IRQHandler
 

@@ -257,11 +257,11 @@ instance:
   - fsl_rtc:
     - clockConfig_t:
       - clockSource: 'clk_32khz'
-      - clockSourceFreq: 'BOARD_BootClockRUN'
+      - clockSourceFreq: 'ClocksTool_DefaultInit'
     - rtc_config:
       - clockOutput: 'false'
-      - updateMode: 'false'
-      - supervisorAccess: 'false'
+      - updateMode: 'true'
+      - supervisorAccess: 'true'
       - compensationIntervalInt: '1'
       - compensationTimeInt: '0'
       - setDateTime: 'false'
@@ -286,9 +286,9 @@ instance:
       - isSecondsInterruptEnabled: 'true'
       - secondsInterrupt:
         - IRQn: 'RTC_Seconds_IRQn'
-        - enable_interrrupt: 'noInit'
-        - enable_priority: 'false'
-        - priority: '1'
+        - enable_interrrupt: 'enabled'
+        - enable_priority: 'true'
+        - priority: '5'
         - enable_custom_name: 'false'
       - isInterruptEnabled: 'false'
       - commonInterrupt:
@@ -302,8 +302,8 @@ instance:
 const rtc_config_t RTC_config = {
   .clockOutput = false,
   .wakeupSelect = false,
-  .updateMode = false,
-  .supervisorAccess = false,
+  .updateMode = true,
+  .supervisorAccess = true,
   .compensationInterval = 0x0U,
   .compensationTime = 0x0U
 };
@@ -315,8 +315,10 @@ static void RTC_init(void) {
   RTC_EnableLPOClock(RTC_PERIPHERAL, false);
   /* Enable interrupts */
   RTC_EnableInterrupts(RTC_PERIPHERAL, (kRTC_SecondsInterruptEnable));
-  /* Interrupt RTC_SECONDS_IRQN request in the NVIC is not initialized (disabled by default). */
-  /* It can be enabled later by EnableIRQ(RTC_SECONDS_IRQN); function call. */
+  /* Interrupt vector RTC_Seconds_IRQn priority settings in the NVIC. */
+  NVIC_SetPriority(RTC_SECONDS_IRQN, RTC_SECONDS_IRQ_PRIORITY);
+  /* Enable interrupt RTC_SECONDS_IRQN request in the NVIC */
+  EnableIRQ(RTC_SECONDS_IRQN);
 }
 
 /***********************************************************************************************************************

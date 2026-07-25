@@ -7,13 +7,23 @@ const ntp = @import("ntp.zig");
 
 var jobQueue = rtx.JobQueue(
     rtx.JobMsg(anyopaque),
-    "main executor",
+    "MainJobQueue",
     4096,
     .osPriorityAboveNormal,
     10,
+    rtx.jobQueue.default_mq_attr,
+    rtx.jobQueue.default_task_attr,
 ).default();
 
+var ntpService: ntp.Ntp(
+    connection.Connection(
+        simpleConnection.LwipConnection(.udp_ip4),
+    ),
+) = undefined;
+
 const mainRunType = struct {
+    const main_event_wait_period: u32 = 1000;
+
     thread: rtx.StaticThread(
         @This(),
         24000,
@@ -31,9 +41,19 @@ const mainRunType = struct {
         ntp_trigger,
     ),
 
+    mainState: struct {
+        dhcp_up: bool,
+        ntp_acquired: bool,
+    } = .{
+        .dhcp_up = false,
+        .ntp_acquired = false,
+    },
+
     pub const mainEvents = enum(u32) {
         trigger_ntp = 1 << 1,
         ntp_aquired = 1 << 2,
+        dhcp_up = 1 << 3,
+        dhcp_down = 1 << 4,
     };
 
     pub fn ntp_trigger(self: *@This()) void {
@@ -50,7 +70,7 @@ const mainRunType = struct {
         );
 
         try self.ntpTimer.new(
-            .osTimerPeriodic,
+            .osTimerOnce,
             self,
             0,
         );
@@ -70,10 +90,22 @@ const mainRunType = struct {
         return ipAddr;
     }
 
+    fn dhcp_up_down(arg: ?*anyopaque, up_down: bool) void {
+        const tread = rtx.thread.create(arg) catch unreachable;
+
+        _ = tread.flagsSet(
+            @intFromEnum(if (up_down) mainEvents.dhcp_up else mainEvents.dhcp_down),
+        ) catch unreachable;
+    }
+
     fn runner(self: ?*@This()) void {
         //_ = self;
         self.?.ntpSyncTime = 0;
         self.?.ntpSyncCount = 0;
+        self.?.mainState = .{
+            .dhcp_up = false,
+            .ntp_acquired = false,
+        };
 
         board.lpuart2.write("MISO2 starting\r\n") catch {};
 
@@ -100,7 +132,10 @@ const mainRunType = struct {
 
         board.netif.add() catch unreachable;
 
-        board.netif.set_callbacks();
+        board.netif.set_callbacks(
+            dhcp_up_down,
+            self.?.thread.thread.id,
+        );
 
         board.netif.dhcp_set_struct();
 
@@ -114,7 +149,6 @@ const mainRunType = struct {
         )) {
             //
         }
-        self.?.ntpTimer.start(16000) catch unreachable;
 
         board.netif.dhcp_start();
 
@@ -123,7 +157,7 @@ const mainRunType = struct {
         // ---------------------------------------------------------------
         // Polling loop — drives lwIP at POLL_MS intervals
         // ---------------------------------------------------------------
-        var last_print_ms: u32 = 0;
+        //var last_print_ms: u32 = 0;
         //var dhcp_bound = false;
 
         //var state: u32 = 0;
@@ -147,71 +181,95 @@ const mainRunType = struct {
 
             // periodic state
 
-            if (self.?.thread.flagsWait(rtx.osFlagsValidAll, .osFlagsWaitAny, rtx.osWaitNever) catch null) |flags| {
+            // Process events
+            if (self.?.thread.flagsWait(
+                rtx.osFlagsValidAll,
+                .osFlagsWaitAny,
+                main_event_wait_period,
+            ) catch null) |flags| {
 
-                // Get the NTP trigger
-                if (0 != (flags & @intFromEnum(mainEvents.trigger_ntp))) {
-                    self.?.ntpTimer.stop() catch {};
-
-                    if (ntp.getTimeFromServer(
-                        ntp_uri,
-                        board.rtc.unix_to_ntp(
-                            board.system_rtc.get_timestamp(),
-                        ),
-                        kernel.getTickCount(),
-                    )) |ntpResponse| {
-                        const time_diff = board.system_rtc.set_timestamp(
-                            board.rtc.ntp_to_unix(ntpResponse.timestamp_s),
-                        );
-
-                        if (time_diff > 4) {
-                            self.?.ntpSyncCount = 0;
-                        } else if (time_diff <= 1) {
-                            self.?.ntpSyncCount += 1;
-                        } else {
-                            // nothing
-                        }
-
-                        if (self.?.ntpSyncCount > 3) {
-                            self.?.ntpSyncCount = 0;
-                            _ = self.?.thread.flagsSet(@intFromEnum(mainEvents.ntp_aquired)) catch unreachable;
-                        } else {
-                            const nextSyncTime: u32 = if (ntpResponse.poll_interval > 60 * 60) @as(u32, 60 * 60 * 1000) else ntpResponse.poll_interval * 1000;
-                            self.?.ntpTimer.start(nextSyncTime) catch unreachable;
-                        }
-                        //_ = board.c.printf("NTP Sync: %u, %d\r\n", ntpResponse.timestamp_s, time_diff);
-                    } else |_| {
-                        self.?.ntpSyncCount = 0;
-                        self.?.ntpTimer.start(16000) catch unreachable;
-                    }
-                }
                 // NTP time acquisition stopped
                 if (0 != (flags & @intFromEnum(mainEvents.ntp_aquired))) {
-                    // Set to resync in 15mins
                     self.?.ntpSyncTime = board.system_rtc.get_timestamp();
                     self.?.ntpSyncCount = 0;
+
+                    // Re-sync in 15minutes
                     self.?.ntpTimer.start(@as(u32, 15 * 60 * 1000)) catch unreachable;
 
                     _ = board.c.printf("NTP Acquired: %u\r\n", self.?.ntpSyncTime);
+
+                    self.?.mainState.dhcp_up = true;
+                }
+
+                // NTP Timer trigger
+                if (0 != (flags & @intFromEnum(mainEvents.trigger_ntp))) {
+                    self.?.process_ntp_trigger(ntp_uri) catch unreachable;
+                }
+
+                // DHCP is up
+                if (0 != (flags & @intFromEnum(mainEvents.dhcp_up))) {
+                    _ = board.c.printf("DHCP up \n\r");
+                    self.?.ntpTimer.start(1000) catch unreachable;
+                    self.?.mainState.dhcp_up = true;
+                }
+
+                // DHCP is down
+                if (0 != (flags & @intFromEnum(mainEvents.dhcp_down))) {
+                    self.?.ntpTimer.stop() catch unreachable;
+                    self.?.mainState.dhcp_up = false;
                 }
             } else {
-                //
+                // No event during time loop
             }
 
-            const now = kernel.getTickCount();
-            if (now -% last_print_ms >= 1000) {
-                last_print_ms = now;
-                const link_up: u32 = @intFromBool(board.netif.is_link_up());
-                const dhcp_data = board.netif.get_dhcp_data();
-                if (dhcp_data) |data| {
-                    _ = board.c.printf("link=%d dhcp_state=%d tries=%d\r\n", link_up, data.*.state, data.*.tries);
-                } else {
-                    _ = board.c.printf("link=%d dhcp=null\r\n", link_up);
-                }
-            }
+            // Process state
+
+            _ = board.c.printf("Loop \n\r");
         }
 
         unreachable;
+    }
+
+    inline fn process_ntp_trigger(
+        self: *@This(),
+        ntp_uri: std.Uri,
+    ) rtx.osError!void {
+        self.ntpTimer.stop() catch {};
+
+        if (ntpService.getTimeFromServer(
+            ntp_uri,
+            board.rtc.unix_to_ntp(
+                board.system_rtc.get_timestamp(),
+            ),
+            kernel.getTickCount(),
+        )) |ntpResponse| {
+            const time_diff = board.system_rtc.set_timestamp(
+                board.rtc.ntp_to_unix(ntpResponse.timestamp_s),
+            );
+
+            if (time_diff > 4) {
+                self.ntpSyncCount = 0;
+            } else if (time_diff <= 2) {
+                self.ntpSyncCount += 1;
+            } else {
+                // nothing
+            }
+
+            if (self.ntpSyncCount >= 3) {
+                _ = try self.thread.flagsSet(@intFromEnum(mainEvents.ntp_aquired));
+            } else {
+                const nextSyncTime: u32 = if (ntpResponse.poll_interval > (60 * 60))
+                    @as(u32, 60 * 60 * 1000)
+                else
+                    (ntpResponse.poll_interval * 1000);
+
+                try self.ntpTimer.start(nextSyncTime);
+            }
+            //_ = board.c.printf("NTP Sync: %u, %d\r\n", ntpResponse.timestamp_s, time_diff);
+        } else |_| {
+            self.ntpSyncCount = 0;
+            try self.ntpTimer.start(16000);
+        }
     }
 
     pub fn job(_: ?*anyopaque) void {
@@ -220,7 +278,7 @@ const mainRunType = struct {
 };
 
 var main_task: mainRunType = undefined;
-var kernel: rtx.Kernel(idleThread, errorNotify) = undefined;
+var kernel = rtx.Kernel(idleThread, errorNotify).default();
 
 export fn zmain() noreturn {
     board.initPreKernel();

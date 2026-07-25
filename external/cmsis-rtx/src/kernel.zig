@@ -69,6 +69,10 @@ pub fn Kernel(
             return c.osKernelResume(ticks);
         }
 
+        pub fn default() @This() {
+            return .{};
+        }
+
         export fn osRtxErrorNotify(code: u32, object_id: ?*anyopaque) callconv(.c) u32 {
             ErrorNotify(core.osErrorMapAsError(@intCast(code)), object_id);
 
