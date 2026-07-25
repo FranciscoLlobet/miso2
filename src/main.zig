@@ -15,7 +15,11 @@ var jobQueue = rtx.JobQueue(
     rtx.jobQueue.default_task_attr,
 ).default();
 
-var ntpService: ntp.Ntp(connection.Connection(simpleConnection.LwipConnection(.udp_ip4))) = undefined;
+var ntpService: ntp.Ntp(
+    connection.Connection(
+        simpleConnection.LwipConnection(.udp_ip4),
+    ),
+) = undefined;
 
 const mainRunType = struct {
     const main_event_wait_period: u32 = 1000;
@@ -36,6 +40,14 @@ const mainRunType = struct {
         "ntpTimer",
         ntp_trigger,
     ),
+
+    mainState: struct {
+        dhcp_up: bool,
+        ntp_acquired: bool,
+    } = .{
+        .dhcp_up = false,
+        .ntp_acquired = false,
+    },
 
     pub const mainEvents = enum(u32) {
         trigger_ntp = 1 << 1,
@@ -90,6 +102,10 @@ const mainRunType = struct {
         //_ = self;
         self.?.ntpSyncTime = 0;
         self.?.ntpSyncCount = 0;
+        self.?.mainState = .{
+            .dhcp_up = false,
+            .ntp_acquired = false,
+        };
 
         board.lpuart2.write("MISO2 starting\r\n") catch {};
 
@@ -165,7 +181,7 @@ const mainRunType = struct {
 
             // periodic state
 
-            // Wait for events
+            // Process events
             if (self.?.thread.flagsWait(
                 rtx.osFlagsValidAll,
                 .osFlagsWaitAny,
@@ -181,6 +197,8 @@ const mainRunType = struct {
                     self.?.ntpTimer.start(@as(u32, 15 * 60 * 1000)) catch unreachable;
 
                     _ = board.c.printf("NTP Acquired: %u\r\n", self.?.ntpSyncTime);
+
+                    self.?.mainState.dhcp_up = true;
                 }
 
                 // NTP Timer trigger
@@ -192,13 +210,19 @@ const mainRunType = struct {
                 if (0 != (flags & @intFromEnum(mainEvents.dhcp_up))) {
                     _ = board.c.printf("DHCP up \n\r");
                     self.?.ntpTimer.start(1000) catch unreachable;
+                    self.?.mainState.dhcp_up = true;
                 }
+
+                // DHCP is down
                 if (0 != (flags & @intFromEnum(mainEvents.dhcp_down))) {
                     self.?.ntpTimer.stop() catch unreachable;
+                    self.?.mainState.dhcp_up = false;
                 }
             } else {
-                // No event during time
+                // No event during time loop
             }
+
+            // Process state
 
             _ = board.c.printf("Loop \n\r");
         }
@@ -254,7 +278,7 @@ const mainRunType = struct {
 };
 
 var main_task: mainRunType = undefined;
-var kernel: rtx.Kernel(idleThread, errorNotify) = undefined;
+var kernel = rtx.Kernel(idleThread, errorNotify).default();
 
 export fn zmain() noreturn {
     board.initPreKernel();
@@ -278,8 +302,8 @@ fn errorNotify(code: rtx.osError, object_id: ?*anyopaque) noreturn {
 
 fn idleThread(_: ?*anyopaque) noreturn {
     while (true) {
-        //_ = kernel.kernelSuspend();
-        //kernel.kernelResume(0);
+        _ = kernel.kernelSuspend();
+        kernel.kernelResume(0);
     }
     unreachable;
 }
