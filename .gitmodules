@@ -22,3 +22,6 @@
 [submodule "external/mcuxsdk-examples"]
 	path = external/mcuxsdk-examples
 	url = git@github.com:nxp-mcuxpresso/mcuxsdk-examples.git
+[submodule "external/paho.mqtt.embedded-c/paho.mqtt.embedded-c"]
+	path = external/paho.mqtt.embedded-c/paho.mqtt.embedded-c
+	url = git@github.com:FranciscoLlobet/paho.mqtt.embedded-c.git
